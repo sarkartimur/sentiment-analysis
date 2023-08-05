@@ -41,14 +41,15 @@ def fit(epochs, m, b, x, y, lr):
         m, b = gradient_descent(m, b, x, y, lr)
 
     # Compute the p-value
-    se_mean = u.squared_error_mean(y)
-    se_line = u.squared_error_line(x, y, m, b)
+    se_mean = u.squared_error_total(y)
+    se_line = u.squared_error_regression(x, y, m, b)
     # Degrees of freedom in the denominator,
     # number of observations minus 2 extra parameters in the model (slope and intercept)
     d_dof = len(y) - 2
-    var_ratio = (se_mean-se_line) / (se_line/d_dof)
+    var_explained = se_mean-se_line
+    var_ratio = var_explained / (se_line/d_dof)
     # Note: degrees of freedom in the numerator are equal to 1 in the case of 2d linear model
     p_val = u.f_test(var_ratio, 1, d_dof)
     print(f'The p value is {p_val}')
 
-    return m, b        
+    return m, b
