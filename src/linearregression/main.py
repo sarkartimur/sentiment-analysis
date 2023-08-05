@@ -10,8 +10,7 @@ TARGET = np.array([30, 21, 27, 39, 40, 37])
 LEARN_RATE = 0.0008
 EPOCHS = 10000
 
-model = SingularLinearRegression(PREDICTOR, TARGET, LEARN_RATE, EPOCHS)
-model.fit()
+model = SingularLinearRegression(PREDICTOR, TARGET, LEARN_RATE, EPOCHS).fit()
 sklearn_model = linear_regression(SK_PREDICTOR, TARGET)
 
 fig, ax = plt.subplots()

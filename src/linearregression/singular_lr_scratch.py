@@ -34,8 +34,8 @@ class SingularLinearRegression:
             if (i % 1000 == 0):
                 print(f'Epoch: {i}, current slope: {self.slope}, current intercept: {self.intercept}')
             self.__gradient_descent()
-
         print(f'The p value is {self.__calculate_p()}')
+        return self
 
     def plot_line(self):
         return [self.slope*x + self.intercept for x in range(self.__predictor[0], self.__predictor[-1])]
