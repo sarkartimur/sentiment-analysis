@@ -1,5 +1,5 @@
 """
-Contains a simple reference 'from scratch' implementation of singular linear regression.
+Contains a simple reference 'from scratch' implementation of single-variate linear regression.
 
 Reference material:
 https://www.youtube.com/watch?v=VmbA0pi2cRQ
@@ -14,7 +14,7 @@ import util as u
 
 
 @dataclass
-class SingularLinearRegression:
+class SimpleLinearRegression:
     predictor: InitVar[np.ndarray]
     target: InitVar[np.ndarray]
     learn_rate: InitVar[float]

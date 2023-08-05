@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from sklearn_lr import linear_regression
-from singular_lr_scratch import SingularLinearRegression
+from simple_lr_sklearn import linear_regression
+from simple_lr_scratch import SimpleLinearRegression
 
 
 PREDICTOR = np.array([5, 15, 25, 35, 45, 55])
@@ -10,7 +10,7 @@ TARGET = np.array([30, 21, 27, 39, 40, 37])
 LEARN_RATE = 0.0008
 EPOCHS = 10000
 
-model = SingularLinearRegression(PREDICTOR, TARGET, LEARN_RATE, EPOCHS).fit()
+model = SimpleLinearRegression(PREDICTOR, TARGET, LEARN_RATE, EPOCHS).fit()
 sklearn_model = linear_regression(SK_PREDICTOR, TARGET)
 
 fig, ax = plt.subplots()
