@@ -1,7 +1,17 @@
+import logging
 from matplotlib import pyplot as plt
 import numpy as np
 from simple_lr_sklearn import linear_regression
 from simple_lr_scratch import SimpleLinearRegression
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+logging.getLogger('matplotlib').setLevel(logging.INFO)
 
 
 PREDICTOR = np.array([5, 15, 25, 35, 45, 55])

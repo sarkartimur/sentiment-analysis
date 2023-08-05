@@ -9,8 +9,12 @@ https://vitalflux.com/interpreting-f-statistics-in-linear-regression-formula-exa
 
 
 from dataclasses import InitVar, dataclass
+import logging
 import numpy as np
 import util as u
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -32,10 +36,10 @@ class SimpleLinearRegression:
     def fit(self):
         for i in range(self.__epochs):
             if (i % 1000 == 0):
-                print(f'Epoch: {i}, current slope: {self.slope}, current intercept: {self.intercept}')
+                logger.debug(f'Epoch: {i}, current slope: {self.slope}, current intercept: {self.intercept}')
             self.__gradient_descent()
-        print(f'The p value is {self.__calculate_p()}')
-        print(f'Slope: {self.slope}, Intercept: {self.intercept}')
+        logger.info(f'The p value is {self.__calculate_p()}')
+        logger.info(f'Slope: {self.slope}, Intercept: {self.intercept}')
         return self
 
     def plot_line(self):
