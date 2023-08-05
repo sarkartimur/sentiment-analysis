@@ -1,16 +1,18 @@
 """
 Contains a simple reference 'from scratch' implementation of singular linear regression.
 
-Links to resources:
+Reference material:
 https://www.youtube.com/watch?v=VmbA0pi2cRQ
 https://vitalflux.com/mean-square-error-r-squared-which-one-to-use/
+https://vitalflux.com/interpreting-f-statistics-in-linear-regression-formula-examples/
 """
 
 
+import numpy as np
 import util as u
 
 
-def gradient_descent(slope, intercept, inputs, outputs, learn_rate):
+def gradient_descent(slope, intercept, predictor: np.ndarray, target: np.ndarray, learn_rate):
     """Attempts to minimize loss by way of gradient descent (loss function in this case is mean squared error(MSE)).
 
     Returns
@@ -19,12 +21,12 @@ def gradient_descent(slope, intercept, inputs, outputs, learn_rate):
     """
     slope_pd = 0
     intercept_pd = 0
-    n = len(inputs)
+    n = len(predictor)
 
     for i in range(n):
         # calculate partial derivatives of MSE with respect to slope and intercept
-        slope_pd += -(2/n) * inputs[i] * (outputs[i] - (slope*inputs[i] + intercept))
-        intercept_pd += -(2/n) * (outputs[i] - (slope*inputs[i] + intercept))
+        slope_pd += -(2/n) * predictor[i] * (target[i] - (slope*predictor[i] + intercept))
+        intercept_pd += -(2/n) * (target[i] - (slope*predictor[i] + intercept))
 
     slope -= slope_pd*learn_rate
     intercept -= intercept_pd*learn_rate
