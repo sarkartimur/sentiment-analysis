@@ -22,6 +22,9 @@ EPOCHS = 10000
 
 model = SimpleLinearRegression(PREDICTOR, TARGET, LEARN_RATE, EPOCHS).fit()
 sklearn_model = linear_regression(SK_PREDICTOR, TARGET)
+# Compute slope using the formula (for reference)
+slope = np.corrcoef(PREDICTOR, TARGET)*TARGET.std()/PREDICTOR.std()
+logger.info(f'Reference slope: {slope}')
 
 fig, ax = plt.subplots()
 ax.scatter(PREDICTOR, TARGET, color='g')
