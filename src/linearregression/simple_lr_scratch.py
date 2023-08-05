@@ -35,6 +35,7 @@ class SimpleLinearRegression:
                 print(f'Epoch: {i}, current slope: {self.slope}, current intercept: {self.intercept}')
             self.__gradient_descent()
         print(f'The p value is {self.__calculate_p()}')
+        print(f'Slope: {self.slope}, Intercept: {self.intercept}')
         return self
 
     def plot_line(self):
