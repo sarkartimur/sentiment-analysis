@@ -3,19 +3,20 @@ import numpy as np
 from sklearn_lr import linear_regression
 from singular_lr_scratch import fit
 
-x = np.array([5, 15, 25, 35, 45, 55])
-x2 = x.reshape(-1, 1)
-y = np.array([30, 21, 27, 39, 40, 37])
-m = 0
-b = 0
-lr = 0.0001
-epochs = 100000
 
-m, b = fit(epochs, m, b, x, y, lr)
-model = linear_regression(x2, y)
+INPUT = np.array([5, 15, 25, 35, 45, 55])
+SK_INPUT = INPUT.reshape(-1, 1)
+OUTPUT = np.array([30, 21, 27, 39, 40, 37])
+LEARN_RATE = 0.0008
+EPOCHS = 10000
+slope = 0
+intercept = 0
+
+slope, intercept = fit(EPOCHS, slope, intercept, INPUT, OUTPUT, LEARN_RATE)
+model = linear_regression(SK_INPUT, OUTPUT)
 
 fig, ax = plt.subplots()
-ax.scatter(x, y, color='g')
-ax.plot([m*x + b for x in range(x[0], x[-1])], color='r')
-ax.plot(x2, model.predict(x2), color='b')
+ax.scatter(INPUT, OUTPUT, color='g')
+ax.plot([slope*x + intercept for x in range(INPUT[0], INPUT[-1])], color='r')
+ax.plot(SK_INPUT, model.predict(SK_INPUT), color='b')
 plt.show()
