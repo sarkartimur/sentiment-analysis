@@ -23,15 +23,15 @@ def gradient_descent(slope, intercept, inputs, outputs, learn_rate):
         slope_pd += -(2/n) * inputs[i] * (outputs[i] - (slope*inputs[i] + intercept))
         intercept_pd += -(2/n) * (outputs[i] - (slope*inputs[i] + intercept))
 
-    adj_slope = slope - slope_pd*learn_rate
-    adj_intercept = intercept - intercept_pd*learn_rate
+    slope -= slope_pd*learn_rate
+    intercept -= intercept_pd*learn_rate
 
-    return adj_slope, adj_intercept
+    return slope, intercept
 
 
-def fit(epochs, x, y, m, b, lr):
+def fit(epochs, m, b, x, y, lr):
     for i in range(epochs):
-        if (i % 100 == 0):
+        if (i % 1000 == 0):
             print(f'Epoch: {i}, current slope: {m}, current intercept: {b}')
         m, b = gradient_descent(m, b, x, y, lr)
 

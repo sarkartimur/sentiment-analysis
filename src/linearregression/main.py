@@ -9,9 +9,9 @@ y = np.array([30, 21, 27, 39, 40, 37])
 m = 0
 b = 0
 lr = 0.0001
-epochs = 10000
+epochs = 100000
 
-m, b = fit(epochs, x, y, m, b, lr)
+m, b = fit(epochs, m, b, x, y, lr)
 model = linear_regression(x2, y)
 
 fig, ax = plt.subplots()
