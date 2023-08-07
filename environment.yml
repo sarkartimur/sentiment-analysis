@@ -117,3 +117,4 @@ dependencies:
   - zstd=1.5.5=hd43e919_0
   - pip:
       - micrograd==0.1.0
+      - python-graphviz==0.20.1
