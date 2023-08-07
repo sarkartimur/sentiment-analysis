@@ -2,7 +2,6 @@
 Contains a simple reference 'from scratch' implementation of single-variate linear regression.
 
 Reference material:
-https://www.youtube.com/watch?v=VmbA0pi2cRQ
 https://vitalflux.com/mean-square-error-r-squared-which-one-to-use/
 https://vitalflux.com/interpreting-f-statistics-in-linear-regression-formula-examples/
 """
@@ -43,7 +42,7 @@ class SimpleLinearRegression:
         return self
 
     def plot_line(self):
-        return [self.slope*x + self.intercept for x in range(self.__predictor[0], self.__predictor[-1])]
+        return [self.slope*x + self.intercept for x in range(0, self.__predictor[-1])]
 
     def __gradient_descent(self):
         """Attempts to minimize loss by way of gradient descent (loss function in this case is mean squared error(MSE)).
@@ -54,14 +53,11 @@ class SimpleLinearRegression:
         """
         slope_pd = 0
         intercept_pd = 0
-        n = len(self.__predictor)
-
-        for i in range(n):
-            x = self.__predictor[i]
-            y = self.__target[i]
+        for x, y in zip(self.__predictor, self.__target):
+            line = self.slope*x + self.intercept
             # calculate partial derivatives of MSE with respect to slope and intercept
-            slope_pd += -(2/n) * x * (y - (self.slope*x + self.intercept))
-            intercept_pd += -(2/n) * (y - (self.slope*x + self.intercept))
+            slope_pd += -2*x*(y-line)
+            intercept_pd += -2*(y-line)
 
         self.slope -= slope_pd*self.__learn_rate
         self.intercept -= intercept_pd*self.__learn_rate
