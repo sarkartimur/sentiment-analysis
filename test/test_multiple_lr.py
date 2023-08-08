@@ -20,7 +20,8 @@ def test_multiple_linear_regression():
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
+    ax.view_init(azim=-60, elev=6)
     
     ax.scatter([i[0] for i in predictor], [i[1] for i in predictor], target, color='g')
-    ax.plot_surface(xs, ys, zs, alpha=0.5)
+    ax.plot_surface(xs, ys, zs, alpha=0.5, cmap='plasma')
     plt.show()
