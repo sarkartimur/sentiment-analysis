@@ -4,7 +4,7 @@ import time
 from matplotlib import pyplot as plt
 import numpy as np
 from sklearn.linear_model import LinearRegression
-from src.linearregression.simple_lr_scratch import SimpleLinearRegression
+from src.linearregression.simple_lr import SimpleLinearRegression
 
 
 PREDICTOR = np.array([5, 15, 25, 35, 45, 55])
