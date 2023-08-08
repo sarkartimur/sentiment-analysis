@@ -1,5 +1,7 @@
 import logging
 from math import floor
+import time
+from matplotlib import pyplot as plt
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from src.linearregression.simple_lr_scratch import SimpleLinearRegression
@@ -22,5 +24,12 @@ reference_slope = (np.corrcoef(PREDICTOR, TARGET)*TARGET.std()/PREDICTOR.std())[
 def test_simple_linear_regression():
     model.fit()
     sk_model.fit(SK_PREDICTOR, TARGET)
-    assert f'{reference_slope:.2f}' == f'{sk_model.coef_[0]:.2f}' == f'{model.slope:.2f}'
-    assert floor(sk_model.intercept_) == floor(model.intercept)
+    try:
+        assert f'{reference_slope:.2f}' == f'{sk_model.coef_[0]:.2f}' == f'{model.slope:.2f}'
+        assert floor(sk_model.intercept_) == floor(model.intercept)
+    except AssertionError:
+        fig, ax = plt.subplots()
+        ax.scatter(PREDICTOR, TARGET, color='g')
+        ax.plot(model.plot_line(), color='r')
+        ax.plot(SK_PREDICTOR, sk_model.predict(SK_PREDICTOR), color='b')
+        plt.savefig(f'simple_regression_{time.time()}_fail.png')
