@@ -13,7 +13,7 @@ TARGET = np.array([30, 21, 27, 39, 40, 37])
 LEARN_RATE = 0.0001
 EPOCHS = 25000
 
-model = SimpleLinearRegression(PREDICTOR, TARGET, LEARN_RATE, EPOCHS)
+model = SimpleLinearRegression(LEARN_RATE, EPOCHS)
 # Note: sklearn uses the least squares method for optimization (solve Ax=b)
 sk_model = LinearRegression(fit_intercept=True, copy_X=False, n_jobs=None)
 
@@ -22,7 +22,7 @@ reference_slope = (np.corrcoef(PREDICTOR, TARGET)*TARGET.std()/PREDICTOR.std())[
 
 
 def test_simple_linear_regression():
-    model.fit()
+    model.fit(PREDICTOR, TARGET)
     sk_model.fit(SK_PREDICTOR, TARGET)
     try:
         assert f'{reference_slope:.2f}' == f'{sk_model.coef_[0]:.2f}' == f'{model.slope:.2f}'
@@ -30,6 +30,6 @@ def test_simple_linear_regression():
     except AssertionError:
         fig, ax = plt.subplots()
         ax.scatter(PREDICTOR, TARGET, color='g')
-        ax.plot(model.plot_line(), color='r')
+        ax.plot(model.plot_line(PREDICTOR), color='r')
         ax.plot(SK_PREDICTOR, sk_model.predict(SK_PREDICTOR), color='b')
         plt.savefig(f'simple_regression_{time.time()}_fail.png')

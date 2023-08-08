@@ -7,7 +7,6 @@ https://vitalflux.com/interpreting-f-statistics-in-linear-regression-formula-exa
 """
 from dataclasses import InitVar, dataclass
 import logging
-import numpy as np
 from . import util as u
 
 
@@ -16,33 +15,29 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SimpleLinearRegression:
-    predictor: InitVar[np.ndarray]
-    target: InitVar[np.ndarray]
     learn_rate: InitVar[float]
     epochs: InitVar[int]
 
     slope: float = 0
     intercept: float = 0
 
-    def __post_init__(self, predictor, target, learn_rate, epochs):
-        self.__predictor = predictor
-        self.__target = target
+    def __post_init__(self, learn_rate, epochs):
         self.__learn_rate = learn_rate
         self.__epochs = epochs
 
-    def fit(self):
+    def fit(self, predictor, target):
         for i in range(self.__epochs):
             if (i % 1000 == 0):
                 logger.debug(f'Epoch: {i}, current slope: {self.slope}, current intercept: {self.intercept}')
-            self.__gradient_descent()
-        logger.info(f'The p value is {self.__calculate_p()}')
+            self.__gradient_descent(predictor, target)
+        logger.info(f'The p value is {self.__calculate_p(predictor, target)}')
         logger.info(f'Slope: {self.slope}, Intercept: {self.intercept}')
         return self
 
-    def plot_line(self):
-        return [self.slope*x + self.intercept for x in range(0, self.__predictor[-1])]
+    def plot_line(self, predictor):
+        return [self.slope*x + self.intercept for x in range(0, predictor[-1])]
 
-    def __gradient_descent(self):
+    def __gradient_descent(self, predictor, target):
         """Attempts to minimize loss by way of gradient descent (loss function in this case is mean squared error(MSE)).
 
         Returns
@@ -51,7 +46,7 @@ class SimpleLinearRegression:
         """
         slope_pd = 0
         intercept_pd = 0
-        for x, y in zip(self.__predictor, self.__target):
+        for x, y in zip(predictor, target):
             line = self.slope*x + self.intercept
             # calculate partial derivatives of MSE with respect to slope and intercept
             slope_pd += -2*x*(y-line)
@@ -60,12 +55,12 @@ class SimpleLinearRegression:
         self.slope -= slope_pd*self.__learn_rate
         self.intercept -= intercept_pd*self.__learn_rate
 
-    def __calculate_p(self):
-        se_mean = u.squared_error_total(self.__target)
-        se_regression = u.squared_error_regression(self.__predictor, self.__target, self.slope, self.intercept)
+    def __calculate_p(self, predictor, target):
+        se_mean = u.squared_error_total(target)
+        se_regression = u.squared_error_regression(predictor, target, self.slope, self.intercept)
         # Degrees of freedom in the denominator,
         # number of observations minus 2 extra parameters in the model (slope and intercept)
-        d_dof = len(self.__target) - 2
+        d_dof = len(target) - 2
         var_explained = se_mean-se_regression
         var_ratio = var_explained / (se_regression/d_dof)
         # Note: degrees of freedom in the numerator are equal to 1 in the case of 2d linear model
