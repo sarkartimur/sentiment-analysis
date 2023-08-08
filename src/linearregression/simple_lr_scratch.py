@@ -5,12 +5,11 @@ Reference material:
 https://vitalflux.com/mean-square-error-r-squared-which-one-to-use/
 https://vitalflux.com/interpreting-f-statistics-in-linear-regression-formula-examples/
 """
-
-
 from dataclasses import InitVar, dataclass
 import logging
 import numpy as np
-import util as u
+import scipy
+from .util import *
 
 
 logger = logging.getLogger(__name__)
@@ -63,12 +62,12 @@ class SimpleLinearRegression:
         self.intercept -= intercept_pd*self.__learn_rate
 
     def __calculate_p(self):
-        se_mean = u.squared_error_total(self.__target)
-        se_line = u.squared_error_regression(self.__predictor, self.__target, self.slope, self.intercept)
+        se_mean = squared_error_total(self.__target)
+        se_regression = squared_error_regression(self.__predictor, self.__target, self.slope, self.intercept)
         # Degrees of freedom in the denominator,
         # number of observations minus 2 extra parameters in the model (slope and intercept)
         d_dof = len(self.__target) - 2
-        var_explained = se_mean-se_line
-        var_ratio = var_explained / (se_line/d_dof)
+        var_explained = se_mean-se_regression
+        var_ratio = var_explained / (se_regression/d_dof)
         # Note: degrees of freedom in the numerator are equal to 1 in the case of 2d linear model
-        return u.f_test(var_ratio, 1, d_dof)
+        return f_test(var_ratio, 1, d_dof)
