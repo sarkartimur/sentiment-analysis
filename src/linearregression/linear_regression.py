@@ -40,12 +40,7 @@ class GradLinearRegression:
 
     def __gradient_descent(self, predictor: np.ndarray[int, np.dtype[np.float64]],
                            target: np.ndarray[int, np.dtype[np.float64]]) -> None:
-        """Attempts to minimize loss by way of gradient descent (loss function in this case is mean squared error(MSE)).
-
-        Returns
-        -------
-            Parameters (slope and intercept) adjusted by negative gradient times the learning rate
-        """
+        """Attempts to minimize loss by way of gradient descent (loss function in this case is mean squared error(MSE))."""
         if (not self.slope.any()):
             self.slope = np.zeros(predictor.shape[1])
         
@@ -54,6 +49,7 @@ class GradLinearRegression:
         slope_pd = (-2*predictor*(target.reshape(-1, 1) - line.reshape(-1, 1))).sum(0)
         intercept_pd = (-2*(target - line)).sum()
 
+        # adjust parameters by negative gradient times the learning rate
         self.slope -= slope_pd*self.__learn_rate
         self.intercept -= intercept_pd*self.__learn_rate
 

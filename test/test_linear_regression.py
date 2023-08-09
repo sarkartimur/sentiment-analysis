@@ -23,7 +23,7 @@ def test_linear_regression():
     try:
         assert f'{sk_model.coef_[0]:.2f}' == f'{model.slope[0]:.2f}'
         assert floor(sk_model.intercept_) == floor(model.intercept)
-    except AssertionError:
+    except AssertionError as e:
         x, y = np.linspace(0, 100, 10), np.linspace(0, 100, 10)
         xs, ys = np.meshgrid(x, y)
         zs = xs*model.slope[0] + ys*model.slope[1] + model.intercept
@@ -39,3 +39,5 @@ def test_linear_regression():
         ax.plot_surface(xs, ys, zs_sk, alpha=0.5, color='b')
         
         plt.savefig(f'linear_regression_{time.time()}_fail.png')
+
+        raise e
