@@ -49,7 +49,6 @@ class GradLinearRegression:
         if (not self.slope.any()):
             self.slope = np.zeros(predictor.shape[1])
         
-        # line = self.slope*predictor + self.intercept
         line = (self.slope*predictor).sum(1) + self.intercept
         # calculate partial derivatives of MSE with respect to slope and intercept
         slope_pd = (-2*predictor*(target.reshape(-1, 1) - line.reshape(-1, 1))).sum(0)
