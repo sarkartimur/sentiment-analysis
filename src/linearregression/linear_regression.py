@@ -52,13 +52,14 @@ class GradLinearRegression:
     def __calculate_p(self, predictor, target):
         mean = target.mean()
         se_mean = ((target - mean)**2).sum()
-        line = (self.slope*predictor).sum(1) + self.intercept
-        se_line = ((target - line)**2).sum()
+        plane = (self.slope*predictor).sum(1) + self.intercept
+        se_plane = ((target - plane)**2).sum()
         # Degrees of freedom in the denominator,
         # number of observations minus extra parameters in the model (slope and intercept)
-        d_dof = len(target) - len(self.slope) - 1
-        var_explained = se_mean-se_line
-        var_ratio = var_explained / (se_line/d_dof)
-        # Note: degrees of freedom in the numerator are equal to number of params in the model
-        # (len(slope) + 1 for intercept) minus number of params without a model (just intercept)
-        return 1 - scipy.stats.f.cdf(var_ratio, len(self.slope), d_dof)
+        d_dof = len(target) - (len(self.slope) + 1)
+        # Degrees of freedom in the numerator,
+        # number of params in the model (len(slope) + 1 for intercept) minus number of params without a model (just intercept)
+        n_dof = (len(self.slope) + 1) - 1
+        var_explained = se_mean-se_plane
+        var_ratio = (var_explained/n_dof) / (se_plane/d_dof)
+        return 1 - scipy.stats.f.cdf(var_ratio, n_dof, d_dof)
