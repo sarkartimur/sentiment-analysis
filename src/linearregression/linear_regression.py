@@ -62,4 +62,5 @@ class GradLinearRegression:
         n_dof = (len(self.slope) + 1) - 1
         var_explained = se_mean-se_plane
         var_ratio = (var_explained/n_dof) / (se_plane/d_dof)
+        # todo incorrect for some reason, figure it out
         return 1 - scipy.stats.f.cdf(var_ratio, n_dof, d_dof)
