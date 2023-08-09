@@ -27,6 +27,7 @@ class GradLinearRegression:
         self.__epochs = epochs
 
     def fit(self, predictor, target):
+        """Attempts to minimize loss by way of batch gradient descent (loss function in this case is mean squared error(MSE))."""
         for i in range(self.__epochs):
             if (i % 10000 == 0):
                 logger.debug(f'Epoch: {i}, current slope: {self.slope}, current intercept: {self.intercept}')
@@ -39,7 +40,6 @@ class GradLinearRegression:
         return [self.slope*x + self.intercept for x in range(0, predictor[-1])]
 
     def __gradient_descent(self, predictor, target):
-        """Attempts to minimize loss by way of gradient descent (loss function in this case is mean squared error(MSE))."""
         line = (self.slope*predictor).sum(1) + self.intercept
         # calculate partial derivatives of MSE with respect to slope and intercept
         slope_pd = (-2*predictor*(target.reshape(-1, 1) - line.reshape(-1, 1))).sum(0)
