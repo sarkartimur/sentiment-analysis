@@ -1,5 +1,5 @@
 """
-Contains a simple reference 'from scratch' implementation of single-variate linear regression.
+A reference 'from scratch' implementation of linear regression, using gradient descent for minimization of loss.
 
 Reference material:
 https://vitalflux.com/mean-square-error-r-squared-which-one-to-use/
@@ -7,6 +7,7 @@ https://vitalflux.com/interpreting-f-statistics-in-linear-regression-formula-exa
 """
 from dataclasses import InitVar, dataclass
 import logging
+import numpy as np
 from . import util as u
 
 
@@ -14,11 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class SimpleLinearRegression:
+class GradLinearRegression:
     learn_rate: InitVar[float]
     epochs: InitVar[int]
 
-    slope: float = 0
+    slope: np.ndarray[int, np.dtype[np.float64]] = np.empty(0)
     intercept: float = 0
 
     def __post_init__(self, learn_rate, epochs):
@@ -27,30 +28,32 @@ class SimpleLinearRegression:
 
     def fit(self, predictor, target):
         for i in range(self.__epochs):
-            if (i % 1000 == 0):
+            if (i % 10000 == 0):
                 logger.debug(f'Epoch: {i}, current slope: {self.slope}, current intercept: {self.intercept}')
             self.__gradient_descent(predictor, target)
-        logger.info(f'The p value is {self.__calculate_p(predictor, target)}')
+        # logger.info(f'The p value is {self.__calculate_p(predictor, target)}')
         logger.info(f'Slope: {self.slope}, Intercept: {self.intercept}')
         return self
 
     def plot_line(self, predictor):
         return [self.slope*x + self.intercept for x in range(0, predictor[-1])]
 
-    def __gradient_descent(self, predictor, target):
+    def __gradient_descent(self, predictor: np.ndarray[int, np.dtype[np.float64]],
+                           target: np.ndarray[int, np.dtype[np.float64]]) -> None:
         """Attempts to minimize loss by way of gradient descent (loss function in this case is mean squared error(MSE)).
 
         Returns
         -------
             Parameters (slope and intercept) adjusted by negative gradient times the learning rate
         """
-        slope_pd = 0
-        intercept_pd = 0
-        for x, y in zip(predictor, target):
-            line = self.slope*x + self.intercept
-            # calculate partial derivatives of MSE with respect to slope and intercept
-            slope_pd += -2*x*(y-line)
-            intercept_pd += -2*(y-line)
+        if (not self.slope.any()):
+            self.slope = np.zeros(predictor.shape[1])
+        
+        # line = self.slope*predictor + self.intercept
+        line = (self.slope*predictor).sum(1) + self.intercept
+        # calculate partial derivatives of MSE with respect to slope and intercept
+        slope_pd = (-2*predictor*(target.reshape(-1, 1) - line.reshape(-1, 1))).sum(0)
+        intercept_pd = (-2*(target - line)).sum()
 
         self.slope -= slope_pd*self.__learn_rate
         self.intercept -= intercept_pd*self.__learn_rate
