@@ -19,8 +19,8 @@ class GradLinearRegression:
     learn_rate: InitVar[float]
     epochs: InitVar[int]
 
-    slope: np.ndarray[int, np.dtype[np.float64]] = np.empty(0)
-    intercept: float = 0
+    slope: np.ndarray[int, np.dtype[np.float64]] = np.random.uniform(0, 1, (2))
+    intercept: float = np.random.uniform(0, 100)
 
     def __post_init__(self, learn_rate, epochs):
         self.__learn_rate = learn_rate
@@ -38,12 +38,8 @@ class GradLinearRegression:
     def plot_line(self, predictor):
         return [self.slope*x + self.intercept for x in range(0, predictor[-1])]
 
-    def __gradient_descent(self, predictor: np.ndarray[int, np.dtype[np.float64]],
-                           target: np.ndarray[int, np.dtype[np.float64]]) -> None:
+    def __gradient_descent(self, predictor, target):
         """Attempts to minimize loss by way of gradient descent (loss function in this case is mean squared error(MSE))."""
-        if (not self.slope.any()):
-            self.slope = np.zeros(predictor.shape[1])
-        
         line = (self.slope*predictor).sum(1) + self.intercept
         # calculate partial derivatives of MSE with respect to slope and intercept
         slope_pd = (-2*predictor*(target.reshape(-1, 1) - line.reshape(-1, 1))).sum(0)
