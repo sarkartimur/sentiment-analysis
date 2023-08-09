@@ -8,7 +8,7 @@ https://vitalflux.com/interpreting-f-statistics-in-linear-regression-formula-exa
 from dataclasses import InitVar, dataclass
 import logging
 import numpy as np
-from . import util as u
+import scipy.stats
 
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class GradLinearRegression:
             if (i % 10000 == 0):
                 logger.debug(f'Epoch: {i}, current slope: {self.slope}, current intercept: {self.intercept}')
             self.__gradient_descent(predictor, target)
-        # logger.info(f'The p value is {self.__calculate_p(predictor, target)}')
+        logger.info(f'The p value is {self.__calculate_p(predictor, target)}')
         logger.info(f'Slope: {self.slope}, Intercept: {self.intercept}')
         return self
 
@@ -50,12 +50,15 @@ class GradLinearRegression:
         self.intercept -= intercept_pd*self.__learn_rate
 
     def __calculate_p(self, predictor, target):
-        se_mean = u.squared_error_total(target)
-        se_regression = u.squared_error_regression(predictor, target, self.slope, self.intercept)
+        mean = target.mean()
+        se_mean = ((target - mean)**2).sum()
+        line = (self.slope*predictor).sum(1) + self.intercept
+        se_line = ((target - line)**2).sum()
         # Degrees of freedom in the denominator,
-        # number of observations minus 2 extra parameters in the model (slope and intercept)
-        d_dof = len(target) - 2
-        var_explained = se_mean-se_regression
-        var_ratio = var_explained / (se_regression/d_dof)
-        # Note: degrees of freedom in the numerator are equal to 1 in the case of 2d linear model
-        return u.f_test(var_ratio, 1, d_dof)
+        # number of observations minus extra parameters in the model (slope and intercept)
+        d_dof = len(target) - len(self.slope) - 1
+        var_explained = se_mean-se_line
+        var_ratio = var_explained / (se_line/d_dof)
+        # Note: degrees of freedom in the numerator are equal to number of params in the model
+        # (len(slope) + 1 for intercept) minus number of params without a model (just intercept)
+        return 1 - scipy.stats.f.cdf(var_ratio, len(self.slope), d_dof)

@@ -40,4 +40,4 @@ def test_linear_regression():
         
         plt.savefig(f'linear_regression_{time.time()}_fail.png')
 
-        raise
+        raise e
