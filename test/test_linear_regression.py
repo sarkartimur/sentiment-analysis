@@ -47,6 +47,7 @@ def standardize(x: np.ndarray) -> np.ndarray:
     """
     Standardize data i.e. bring the mean to 0 (center data around 0),
     bring the standard deviation to 1.
+    Note: standardization has the effect of replacing each value with it's z-score.
 
     Parameters
     ----------
