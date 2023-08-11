@@ -1,4 +1,5 @@
 import time
+from src.linearregression.gradient_descent import SquareErrorGradientDescentStrategy
 from src.linearregression.linear_regression import GradLinearRegression
 from sklearn.linear_model import LinearRegression
 from matplotlib import pyplot as plt
@@ -13,7 +14,7 @@ PREDICTOR, TARGET = data()
 LEARN_RATE = 0.01
 EPOCHS = 10
 
-model = GradLinearRegression(LEARN_RATE, EPOCHS)
+model = GradLinearRegression(EPOCHS, SquareErrorGradientDescentStrategy(), LEARN_RATE)
 # Note: sklearn uses the least squares method for optimization (solve Ax=b)
 sk_model = LinearRegression(fit_intercept=False, copy_X=False, n_jobs=None)
 
