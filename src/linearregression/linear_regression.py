@@ -27,7 +27,7 @@ class GradLinearRegression:
         self.__gd_strategy = gd_strategy
 
     def fit(self, predictor, target):
-        """Attempts to minimize loss by way of batch gradient descent (loss function in this case is square error)."""
+        """Attempts to minimize loss by way of batch gradient descent."""
         for i in range(self.__epochs):
             logger.debug(f'Epoch: {i}, current slope: {self.slope}')
             self.__gd_strategy.gradient_descent(self, predictor, target)
