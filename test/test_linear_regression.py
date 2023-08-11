@@ -9,6 +9,8 @@ np.random.seed(777)
 
 SHOW_PLOT = True
 SAMPLE_SIZE = 50
+# Note: the correllation between predictor and target in this case most likely will be weak,
+# so the f-value will be small and the model will not be statistically significant
 PREDICTOR = np.random.normal(0, 100, size=(SAMPLE_SIZE, 2))
 TARGET = np.random.normal(0, 100, size=SAMPLE_SIZE)
 LEARN_RATE = 0.01
