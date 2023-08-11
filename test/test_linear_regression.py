@@ -6,10 +6,9 @@ import numpy as np
 np.random.seed(777)
 
 
-def data():
-    return standardize(np.random.normal(0, 100, size=(50, 2))), standardize(np.random.normal(0, 100, size=50))
-
-PREDICTOR, TARGET = data()
+SAMPLE_SIZE = 50
+PREDICTOR = np.random.normal(0, 100, size=(SAMPLE_SIZE, 2))
+TARGET = np.random.normal(0, 100, size=SAMPLE_SIZE)
 LEARN_RATE = 0.01
 EPOCHS = 10
 
@@ -19,8 +18,9 @@ sk_model = LinearRegression(fit_intercept=False, copy_X=False, n_jobs=None)
 
 
 def test_linear_regression():
-    model.fit(PREDICTOR, TARGET)
-    sk_model.fit(PREDICTOR, TARGET)
+    predictor, target = standardize(PREDICTOR), standardize(TARGET)
+    model.fit(predictor, target)
+    sk_model.fit(predictor, target)
     try:
         assert f'{sk_model.coef_[0]:.2f}' == f'{model.slope[0]:.2f}'
     except AssertionError as e:
@@ -34,7 +34,7 @@ def test_linear_regression():
         ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
         ax.view_init(azim=-60, elev=6)
         
-        ax.scatter([i[0] for i in PREDICTOR], [i[1] for i in PREDICTOR], TARGET, color='g')
+        ax.scatter([i[0] for i in predictor], [i[1] for i in predictor], target, color='g')
         ax.plot_surface(xs, ys, zs, alpha=0.7, color='r')
         ax.plot_surface(xs, ys, zs_sk, alpha=0.5, color='b')
         
