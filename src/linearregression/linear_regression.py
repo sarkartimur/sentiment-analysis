@@ -53,8 +53,8 @@ class GradLinearRegression:
         sse = ((target - plane)**2).sum()
         ssr = sst-sse
         # Degrees of freedom in the numerator,
-        # number of coefficients in the model
-        ssr_dof = len(self.slope)
+        # number of coefficients in the model - 1
+        ssr_dof = len(self.slope) - 1
         # Degrees of freedom in the denominator,
         # number of observations minus extra parameters in the model (coefficients)
         sse_dof = len(target) - ssr_dof
