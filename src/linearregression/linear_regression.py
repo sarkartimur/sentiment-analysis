@@ -1,5 +1,6 @@
 """
 A reference 'from scratch' implementation of linear regression, using gradient descent for minimization of loss.
+Note: gradient descent is extremely inefficient for minimizing error of a linear model, it is used here only for demonstration purpose.
 
 Reference material:
 https://vitalflux.com/mean-square-error-r-squared-which-one-to-use/
