@@ -7,6 +7,7 @@ import numpy as np
 np.random.seed(777)
 
 
+SHOW_PLOT = True
 SAMPLE_SIZE = 50
 PREDICTOR = np.random.normal(0, 100, size=(SAMPLE_SIZE, 2))
 TARGET = np.random.normal(0, 100, size=SAMPLE_SIZE)
@@ -20,12 +21,21 @@ sk_model = LinearRegression(fit_intercept=False, copy_X=False, n_jobs=None)
 
 
 def test_linear_regression():
-    predictor, target = standardize(PREDICTOR), standardize(TARGET)
+    predictor, target = __standardize(PREDICTOR), __standardize(TARGET)
     model.fit(predictor, target)
     sk_model.fit(predictor, target)
     try:
         assert f'{sk_model.coef_[0]:.2f}' == f'{model.slope[0]:.2f}'
+        if (SHOW_PLOT):
+            __plot(predictor, target, model, sk_model)
+            plt.show()
     except AssertionError as e:
+        __plot(predictor, target, model, sk_model)
+        plt.savefig(f'linear_regression_{time.time()}_fail.png')
+        raise e
+    
+
+def __plot(predictor, target, model, sk_model):
         x, y = np.linspace(-2, 2, 10), np.linspace(-2, 2, 10)
         xs, ys = np.meshgrid(x, y)
         zs = xs*model.slope[0] + ys*model.slope[1]
@@ -39,13 +49,8 @@ def test_linear_regression():
         ax.scatter([i[0] for i in predictor], [i[1] for i in predictor], target, color='g')
         ax.plot_surface(xs, ys, zs, alpha=0.7, color='r')
         ax.plot_surface(xs, ys, zs_sk, alpha=0.5, color='b')
-        
-        plt.savefig(f'linear_regression_{time.time()}_fail.png')
 
-        raise e
-    
-
-def standardize(x: np.ndarray) -> np.ndarray:
+def __standardize(x: np.ndarray) -> np.ndarray:
     """
     Standardize data i.e. bring the mean to 0 (center data around 0),
     bring the standard deviation to 1.
