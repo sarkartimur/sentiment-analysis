@@ -13,7 +13,8 @@ TARGET = np.random.normal(0, 100, size=SAMPLE_SIZE)
 LEARN_RATE = 0.01
 EPOCHS = 10
 
-model = GradLinearRegression(EPOCHS, SquareErrorGradientDescentStrategy(), LEARN_RATE)
+strat = SquareErrorGradientDescentStrategy(LEARN_RATE)
+model = GradLinearRegression(EPOCHS, strat)
 # Note: sklearn uses the least squares method for optimization (solve Ax=b)
 sk_model = LinearRegression(fit_intercept=False, copy_X=False, n_jobs=None)
 

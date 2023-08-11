@@ -9,6 +9,11 @@ import numpy as np
 
 
 class IGradientDescentStrategy(metaclass=abc.ABCMeta):
+    _learn_rate: float
+
+    def __init__(self, learn_rate):
+        self._learn_rate = learn_rate
+
     @abc.abstractmethod
     def gradient_descent(self, model, predictor: np.ndarray, target: np.ndarray):
         raise NotImplementedError
@@ -22,4 +27,4 @@ class SquareErrorGradientDescentStrategy(IGradientDescentStrategy):
         slope_pd = (-2*predictor*(target.reshape(-1, 1) - line.reshape(-1, 1))).sum(0)
 
         # adjust parameters by negative gradient times the learning rate
-        model.slope -= slope_pd*model.learn_rate
+        model.slope -= slope_pd*self._learn_rate

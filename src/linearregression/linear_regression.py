@@ -20,7 +20,6 @@ class GradLinearRegression:
     epochs: InitVar[int]
     gd_strategy: InitVar[gd.IGradientDescentStrategy]
 
-    learn_rate: float
     slope: np.ndarray[int, np.dtype[np.float64]] = np.random.uniform(0, 1, (2))
 
     def __post_init__(self, epochs, gd_strategy):
