@@ -57,6 +57,6 @@ class GradLinearRegression:
         ssr_dof = len(self.slope) - 1
         # Degrees of freedom in the denominator,
         # number of observations minus extra parameters in the model (coefficients)
-        sse_dof = len(target) - ssr_dof
+        sse_dof = len(target) - len(self.slope)
         f = (ssr/ssr_dof) / (sse/sse_dof)
         return 1 - scipy.stats.f.cdf(f, ssr_dof, sse_dof)
