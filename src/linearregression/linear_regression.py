@@ -45,10 +45,11 @@ class GradLinearRegression:
         sse = ((target - plane)**2).sum()
         ssr = sst-sse
         # Degrees of freedom in the numerator,
-        # number of coefficients in the model - 1
-        ssr_dof = len(self.slope) - 1
+        # number of coefficients in the model
+        ssr_dof = len(self.slope)
         # Degrees of freedom in the denominator,
-        # number of observations minus extra parameters in the model (coefficients)
-        sse_dof = len(target) - len(self.slope)
+        # number of observations minus extra parameters in the model (coefficients),
+        # minus 1 (since we're training on a sample)
+        sse_dof = len(target) - len(self.slope) - 1
         f = (ssr/ssr_dof) / (sse/sse_dof)
         return 1 - scipy.stats.f.cdf(f, ssr_dof, sse_dof)
