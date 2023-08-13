@@ -1,3 +1,4 @@
+import statsmodels.api as sm
 import time
 from src.linearregression.gradient_descent import SquareErrorGradientDescentStrategy
 from src.linearregression.linear_regression import GradLinearRegression
@@ -26,8 +27,11 @@ def test_linear_regression():
     predictor, target = __standardize(PREDICTOR), __standardize(TARGET)
     model.fit(predictor, target)
     sk_model.fit(predictor, target)
+    sm_model = sm.OLS(target, predictor)
+    res = sm_model.fit()
     try:
         assert f'{sk_model.coef_[0]:.2f}' == f'{model.slope[0]:.2f}'
+        assert f'{res.f_pvalue:.2f}' == f'{model.p_value:.2f}'
         if (SHOW_PLOT):
             __plot(predictor, target, model, sk_model)
             plt.show()
@@ -35,22 +39,25 @@ def test_linear_regression():
         __plot(predictor, target, model, sk_model)
         plt.savefig(f'linear_regression_{time.time()}_fail.png')
         raise e
-    
+
 
 def __plot(predictor, target, model, sk_model):
-        x, y = np.linspace(-2, 2, 10), np.linspace(-2, 2, 10)
-        xs, ys = np.meshgrid(x, y)
-        zs = xs*model.slope[0] + ys*model.slope[1]
-        zs_sk = xs*sk_model.coef_[0] + ys*sk_model.coef_[1]
+    x, y = np.linspace(-2, 2, 10), np.linspace(-2, 2, 10)
+    xs, ys = np.meshgrid(x, y)
+    zs = xs*model.slope[0] + ys*model.slope[1]
+    zs_sk = xs*sk_model.coef_[0] + ys*sk_model.coef_[1]
 
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
-        ax.view_init(azim=-60, elev=6)
-        
-        ax.scatter([i[0] for i in predictor], [i[1] for i in predictor], target, color='g')
-        ax.plot_surface(xs, ys, zs, alpha=0.7, color='r')
-        ax.plot_surface(xs, ys, zs_sk, alpha=0.5, color='b')
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    ax.view_init(azim=-60, elev=6)
+
+    ax.scatter([i[0] for i in predictor], [i[1] for i in predictor], target, color='g')
+    ax.plot_surface(xs, ys, zs, alpha=0.7, color='r')
+    ax.plot_surface(xs, ys, zs_sk, alpha=0.5, color='b')
+
 
 def __standardize(x: np.ndarray) -> np.ndarray:
     """
@@ -66,7 +73,7 @@ def __standardize(x: np.ndarray) -> np.ndarray:
     Returns
     -------
         Standardized array
-    """    
+    """
     mean = x.mean()
     std = x.std()
-    return (x - mean)/std    
+    return (x - mean)/std

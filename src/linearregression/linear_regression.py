@@ -20,6 +20,7 @@ class GradLinearRegression:
     epochs: InitVar[int]
     gd_strategy: InitVar[gd.IGradientDescentStrategy]
 
+    p_value: float = 0
     slope: np.ndarray[int, np.dtype[np.float64]] = np.random.uniform(0, 1, (2))
 
     def __post_init__(self, epochs, gd_strategy):
@@ -31,8 +32,9 @@ class GradLinearRegression:
         for i in range(self.__epochs):
             logger.debug(f'Epoch: {i}, current slope: {self.slope}')
             self.__gd_strategy.gradient_descent(self, predictor, target)
-        logger.info(f'The p value is {self.__calculate_p(predictor, target)}')
-        logger.info(f'Slope: {self.slope}')
+
+        self.__calculate_p(predictor, target)
+        logger.info(f'Slope: {self.slope}, p-value: {self.p_value}')
         return self
 
     def plot_line(self, predictor):
@@ -48,8 +50,7 @@ class GradLinearRegression:
         # number of coefficients in the model
         ssr_dof = len(self.slope)
         # Degrees of freedom in the denominator,
-        # number of observations minus extra parameters in the model (coefficients),
-        # minus 1 (since we're training on a sample)
-        sse_dof = len(target) - len(self.slope) - 1
+        # number of observations minus extra parameters in the model (coefficients)
+        sse_dof = len(target) - len(self.slope)
         f = (ssr/ssr_dof) / (sse/sse_dof)
-        return 1 - scipy.stats.f.cdf(f, ssr_dof, sse_dof)
+        self.p_value = float(1 - scipy.stats.f.cdf(f, ssr_dof, sse_dof))
