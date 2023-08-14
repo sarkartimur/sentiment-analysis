@@ -10,7 +10,7 @@ np.random.seed(777)
 
 SHOW_PLOT = True
 SAMPLE_SIZE = 50
-# Note: the correllation between predictor and target in this case most likely will be weak,
+# Note: the correlation between predictor and target in this case most likely will be weak,
 # so the f-value will be small and the model will not be statistically significant
 PREDICTOR = np.random.normal(0, 100, size=(SAMPLE_SIZE, 2))
 TARGET = np.random.normal(0, 100, size=SAMPLE_SIZE)
@@ -30,7 +30,8 @@ def test_linear_regression():
     sm_model = sm.OLS(target, predictor)
     res = sm_model.fit()
     try:
-        assert f'{sk_model.coef_[0]:.2f}' == f'{model.slope[0]:.2f}'
+        for s1, s2 in zip(sk_model.coef_, model.slope):
+            assert f'{s1:.2f}' == f'{s2:.2f}'
         assert f'{res.f_pvalue:.2f}' == f'{model.p_value:.2f}'
         if (SHOW_PLOT):
             __plot(predictor, target, model, sk_model)

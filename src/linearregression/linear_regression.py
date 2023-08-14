@@ -50,7 +50,8 @@ class GradLinearRegression:
         # number of coefficients in the model
         ssr_dof = len(self.slope)
         # Degrees of freedom in the denominator,
-        # number of observations minus extra parameters in the model (coefficients)
+        # number of observations minus extra parameters in the model (coefficients).
+        # Note: 1 is not subtracted because intercept is not approximated.
         sse_dof = len(target) - len(self.slope)
         f = (ssr/ssr_dof) / (sse/sse_dof)
         self.p_value = float(1 - scipy.stats.f.cdf(f, ssr_dof, sse_dof))
