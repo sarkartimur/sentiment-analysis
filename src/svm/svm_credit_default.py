@@ -8,7 +8,7 @@ from ucimlrepo import fetch_ucirepo
 
 
 SAMPLE_COUNT = 1000
-RANDOM_SEED = 777
+RANDOM_SEED = 42
 
 
 """
