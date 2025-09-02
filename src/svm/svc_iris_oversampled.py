@@ -1,6 +1,5 @@
 import pandas as pd
-from sklearn.utils import resample
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import scale
 from sklearn.svm import SVC
 from sklearn.metrics import ConfusionMatrixDisplay

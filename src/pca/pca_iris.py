@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import scale, StandardScaler
+from sklearn.preprocessing import scale
 import matplotlib.pyplot as plt
 from ucimlrepo import fetch_ucirepo
 
