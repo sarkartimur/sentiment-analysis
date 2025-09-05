@@ -8,6 +8,7 @@ dependencies:
   - pandas
   - datasets
   - scikit-learn
+  - umap-learn
   - imbalanced-learn
   - scipy
   - xgboost
