@@ -6,9 +6,11 @@ channels:
 dependencies:
   - python=3.10
   - pandas
+  - datasets
   - scikit-learn
   - imbalanced-learn
   - scipy
+  - xgboost
   - numpy
   - matplotlib
   - statsmodels
@@ -19,4 +21,4 @@ dependencies:
   - pip
   - pip:
     - ucimlrepo
-    - micrograd
+    - kagglehub
