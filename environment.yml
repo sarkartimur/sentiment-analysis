@@ -11,6 +11,7 @@ dependencies:
   - umap-learn
   - imbalanced-learn
   - scipy
+  - seaborn
   - xgboost
   - numpy
   - matplotlib
