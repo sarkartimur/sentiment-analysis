@@ -1,12 +1,12 @@
 # Data volume
 - Linear models need fewer samples (e.g., 50–100 per feature, 5 features -> 5 * 50 = 250 samples minimum).
-In general the more complicated the model is the more data is needed for training it.
-- consider regularization when the amount of data is limited. Regularization reduces variance between training and testing sets (prevents overfitting).
+In general the more complicated the model, the more data is needed for training it.
+- use regularization when the amount of data is limited. Regularization reduces variance between training and testing sets (prevents overfitting).
 
 ### Regularization in Various Model Types
 | Model Type | Specific Technique | How Regularization is Applied |
 | :--- | :--- | :--- |
-| **Linear Models** | **Ridge (L2), Lasso (L1), Elastic Net** | Adds penalty to the linear coefficients (weights). The classic example. |
+| **Linear Models** | **Ridge (L2), Lasso (L1), Elastic Net** | Adds penalty to the linear coefficients (weights). |
 | **Neural Networks** | **L2/L1 Weight Decay, Dropout** | • **L2/L1:** Penalizes the weights in the network layers.<br>• **Dropout:** Randomly drops neurons during training, acting as a powerful regularization technique. |
 | **Support Vector Machines (SVMs)** | **The `C` Parameter** | The `C` parameter is essentially an **L2 regularization** parameter. A small `C` means strong regularization (smoother decision boundary). |
 | **Tree-Based Models** | **Pruning, Max Depth, Min Samples per Leaf** | While not an additive penalty in the loss function, these techniques **directly restrict model complexity** to reduce overfitting, which is the functional goal of regularization. |
@@ -56,8 +56,8 @@ Many machine learning algorithms (like SVM) are fundamentally linear. They work 
 
 
 # Cleaning
-- remove attributes the values of which are missing for the majority of observations (> 50%)
-- missing values (of attributes for smaller proportion of observations) could be replaced with values inferred from existing data (e.g. mean or median), or a default value can be used (where appropriate). Data imputation is the process of filling in or replacing missing values in a dataset.
+- consider dropping attributes the values of which are missing for the majority of observations (> 50%)
+- data imputation is the process of filling in or replacing missing values
 
 | Category | Method | Description | Best for... |
 | :--- | :--- | :--- | :--- |
@@ -69,7 +69,7 @@ Many machine learning algorithms (like SVM) are fundamentally linear. They work 
 | **Advanced** | MICE (Multiple Imputation by Chained Equations) | Creates multiple complete datasets by iteratively imputing missing values with a predictive model. | Complex datasets with a moderate to high percentage of missing values. |
 | | PMM (Predictive Mean Matching) | A variation of MICE that uses a regression model to find the closest observed value to the predicted one for imputation. | When imputed values need to be realistic and within the existing data range. |
 - remove observations with missing values for the majority of attributes
-- remove outliers (3 standard deviations away from the mean)
+- consider removing outliers, but make sure not to remove minority class observations (anomaly detection)
 - Note: data should be brought as close as possible to normal distribution
 
 
@@ -77,11 +77,20 @@ Many machine learning algorithms (like SVM) are fundamentally linear. They work 
 - remove duplicate observations
 - remove duplicate attributes (correlation analysis)
 - attribute selection (forward, backward)
-- PCA
+- dimensionality reduction. Purpose:
+    - Fighting the Curse of Dimensionality: As the number of features (dimensions) in a dataset grows, the data becomes increasingly sparse. This makes it difficult for many machine learning models to find meaningful patterns, leading to poor performance and long training times.
+    - Reducing Overfitting: With fewer features to model, there's less risk of the model learning noise in the data. PCA can effectively act as a form of regularization. By compressing the data into a few principal components, you're forcing the model to focus on the most important underlying patterns, not the random fluctuations of individual features.
 
+
+# Clustering
+- can identify distinct clusters and then analyze the characteristics of the data points within each group.
+- can be used for dimensionality reduction (represent each cluster with a single centroid)
+- can be used for anomaly detection (identify outliers, common technique in fraud detection or network intrusion detection)
+- can add a label that indicates which cluster each data point belongs to (unsupervised)
+- can use clustering on unlabeled data to find groups, and then a small number of labeled examples can be used to label entire clusters, a process known as semi-supervised learning
 
 # Data linearity
-Use residual plots to figure out if features have non-linear relationships (See 033. Calculating residuals). If non-linear you'll see a clear pattern (e.g., a U-shape or curve) in the residuals. This is a dead giveaway that a linear model is missing a key pattern.
+Use residual plots to figure out if features have non-linear relationships. If non-linear you'll see a clear pattern (e.g., a U-shape or curve) in the residuals. This is a dead giveaway that a linear model is missing a key pabesttern.
 
 Train a simple linear model and a simple non-linear model (like a Random Forest or Gradient Boosting machine) on the same data. If the non-linear model significantly outperforms the linear model, your data has important non-linear relationships.
 
