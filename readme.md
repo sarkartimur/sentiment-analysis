@@ -122,7 +122,10 @@ Unlike TF-IDF, word embeddings capture semantics (but don't capture context).
 - Transformers (BERT).
 Use pretrained models (BERT) to project text data into the latent space.
 Unlike TF-IDF and word embeddings, transformers capture both semantics and context.
-
+- Word2Vec vs BERT:
+The core difference between Word2Vec and BERT is that Word2Vec produces a static embedding for each word, while BERT generates a dynamic, contextualized embedding.
+    - Word2Vec Embeddings: Word2Vec learns a single, fixed vector for each word in a vocabulary. For example, the word "bank" will have the same embedding regardless of whether it's used in the sentence "I went to the bank to deposit money" or "I sat on the bank of the river." It learns its representation by looking at the words that appear around it during training, but once trained, the embedding is static.
+    - BERT Embeddings: BERT takes the entire sentence as input and uses its Transformer architecture to generate an embedding for each word based on all the other words in that specific sentence.
 
 # Data synthesis (oversampling)
 - SMOTE (for numeric features), SMOTE-NC (for categorical features, assigns the most frequent category among the k-nearest neighbors)

@@ -13,7 +13,7 @@ class BERTContainer:
         self.bert_model.eval()
         
     def get_bert_embeddings(self, texts, batch_size=16, max_length=512, pooling_strategy='cls'):
-        """Extract BERT embeddings for a list of texts"""
+        print(f"Extracting embeddings using {pooling_strategy}")
         embeddings = []
         
         for i in range(0, len(texts), batch_size):

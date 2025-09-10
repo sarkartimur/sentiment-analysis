@@ -12,21 +12,22 @@ import time
 
 SAMPLE_SIZE = 2000
 EMBEDDING_DIM = 50
+POOLING_STRATEGY='mean'
 
 
 print("Starting BERT + XGBoost Sentiment Analysis...")
 
-train_texts, train_labels, test_texts, test_labels = util.load_data(SAMPLE_SIZE)
+train_texts, train_labels, test_texts, test_labels = util.load_data(sample_size=SAMPLE_SIZE, test_ratio=0.2)
 
 classifier = BERTContainer()
 
 print("\nExtracting BERT embeddings for training data...")
 start_time = time.time()
-train_embeddings = classifier.get_bert_embeddings(train_texts.iloc[:, 0].tolist())
+train_embeddings = classifier.get_bert_embeddings(texts=train_texts.iloc[:, 0].tolist(), pooling_strategy=POOLING_STRATEGY)
 print(f"Embedding extraction time: {time.time() - start_time:.2f} seconds")
 
 print("\nExtracting BERT embeddings for test data...")
-test_embeddings = classifier.get_bert_embeddings(test_texts.iloc[:, 0].tolist())
+test_embeddings = classifier.get_bert_embeddings(texts=test_texts.iloc[:, 0].tolist(), pooling_strategy=POOLING_STRATEGY)
 
 print(f"\nReducing dimensions to {EMBEDDING_DIM} using PCA...")
 train_embeddings_reduced, pca_reducer = util.reduce_dimensions(
