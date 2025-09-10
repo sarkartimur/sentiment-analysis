@@ -22,6 +22,7 @@ def load_data(sample_size=2000, test_ratio=0.25):
     dataset = load_dataset('imdb')
     df = pd.concat([dataset['train'].to_pandas(), dataset['test'].to_pandas()], ignore_index=True)
     
+    print(f"Data set shape: {df.shape}")
     print(df.head())
 
     X = df.drop('label', axis=1)

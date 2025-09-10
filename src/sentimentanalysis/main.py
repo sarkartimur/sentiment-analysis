@@ -36,6 +36,8 @@ train_embeddings_reduced, pca_reducer = util.reduce_dimensions(
 )
 test_embeddings_reduced = pca_reducer.transform(test_embeddings)
 
+print(f"Train set shape: {train_embeddings_reduced.shape}")
+
 # train_set = np.hstack((train_embeddings_reduced, bert.enhance_embeddings(train_embeddings)))
 # test_set = np.hstack((test_embeddings_reduced, bert.enhance_embeddings(test_embeddings)))
 
