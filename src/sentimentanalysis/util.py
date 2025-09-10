@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 import xgboost as xgb
 from sklearn.decomposition import PCA
 from umap import UMAP
+from sklearn.model_selection import RandomizedSearchCV
 
 
 RANDOM_SEED = 42
@@ -31,43 +32,35 @@ def load_data(sample_size=2000, test_ratio=0.2):
     return X_train, y_train, X_test, y_test
 
 def train_xgboost(X_train, y_train, X_val, y_val):
-    params = {
-        'objective': 'binary:logistic',
-        'eval_metric': 'logloss',
-        'eta': 0.1,
-        'max_depth': 6,
-        'subsample': 0.8,
-        'colsample_bytree': 0.8,
-        'random_state': RANDOM_SEED
+    param_grid = {
+        'max_depth': [3, 6, 9, 12],
+        'learning_rate': [0.01, 0.05, 0.1, 0.2],
+        'subsample': [0.6, 0.8, 1.0],
+        'colsample_bytree': [0.6, 0.8, 1.0],
+        'n_estimators': [100, 200, 300],
+        'reg_alpha': [0, 0.1, 0.5],
+        'reg_lambda': [1, 1.5, 2]
     }
     
-    dtrain = xgb.DMatrix(X_train, label=y_train)
-    dval = xgb.DMatrix(X_val, label=y_val)
-    
-    eval_list = [(dtrain, 'train'), (dval, 'eval')]
-    
-    model = xgb.train(
-        params,
-        dtrain,
-        num_boost_round=100,
-        evals=eval_list,
-        early_stopping_rounds=10,
-        verbose_eval=10
+    xgb_model = xgb.XGBClassifier(
+        objective='binary:logistic',
+        eval_metric='logloss',
+        random_state=RANDOM_SEED,
+        early_stopping_rounds=10
     )
     
-    return model
+    # Use randomized search for faster tuning
+    random_search = RandomizedSearchCV(
+        xgb_model, param_grid, n_iter=50, scoring='accuracy',
+        cv=3, verbose=2, random_state=RANDOM_SEED, n_jobs=-1
+    )
     
-def evaluate_model(model, X_test, y_test):
-    dtest = xgb.DMatrix(X_test)
-    y_pred_proba = model.predict(dtest)
-    y_pred = (y_pred_proba > 0.5).astype(int)
+    random_search.fit(X_train, y_train, eval_set=[(X_val, y_val)])
     
-    accuracy = accuracy_score(y_test, y_pred)
-    print(f"Test Accuracy: {accuracy:.4f}")
-    print("\nClassification Report:")
-    print(classification_report(y_test, y_pred))
+    print("Best parameters:", random_search.best_params_)
+    print("Best cross-validation score:", random_search.best_score_)
     
-    return y_pred, y_pred_proba
+    return random_search.best_estimator_
 
 def reduce_dimensions(data, n_components=50, method='pca'):
     if method == 'pca':

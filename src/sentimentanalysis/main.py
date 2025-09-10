@@ -3,8 +3,7 @@ from bert_container import BERTContainer
 import matplotlib.pyplot as plt
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
+from sklearn.metrics import accuracy_score, classification_report, ConfusionMatrixDisplay
 import util
 from util import RANDOM_SEED
 import time
@@ -43,21 +42,16 @@ X_train, X_val, y_train, y_val = train_test_split(
 print("\nTraining XGBoost model...")
 xgb_model = util.train_xgboost(X_train, y_train, X_val, y_val)
 
-print("\nEvaluating on test set...")
-y_pred, y_pred_proba = util.evaluate_model(xgb_model, test_embeddings_reduced, test_labels)
+y_pred = xgb_model.predict(test_embeddings_reduced)
+
+ConfusionMatrixDisplay.from_predictions(test_labels, y_pred, normalize='all')
+
+accuracy = accuracy_score(test_labels, y_pred)
+print(f"Test Accuracy: {accuracy:.4f}")
+print(classification_report(test_labels, y_pred))
 
 # Feature importance
 plt.figure(figsize=(10, 8))
 xgb.plot_importance(xgb_model, max_num_features=20)
 plt.title('Top 20 Feature Importances')
-plt.show()
-
-cm = confusion_matrix(test_labels, y_pred)
-plt.figure(figsize=(8, 6))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-            xticklabels=['Negative', 'Positive'], 
-            yticklabels=['Negative', 'Positive'])
-plt.title('Confusion Matrix')
-plt.ylabel('True Label')
-plt.xlabel('Predicted Label')
 plt.show()
