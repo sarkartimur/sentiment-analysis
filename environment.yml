@@ -13,6 +13,7 @@ dependencies:
   - scipy
   - seaborn
   - xgboost
+  - transformers
   - numpy
   - matplotlib
   - statsmodels
@@ -24,3 +25,4 @@ dependencies:
   - pip:
     - ucimlrepo
     - kagglehub
+    - torch
