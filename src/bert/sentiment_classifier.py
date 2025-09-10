@@ -106,98 +106,33 @@ class BERTSentimentClassifier:
         
         return y_pred, y_pred_proba
 
-def load_imdb_data(sample_size=2000):
-    """Load and sample IMDB dataset"""
+def load_imdb_data(sample_size=2000, test_ratio=0.2, random_state=42):
+    """Load IMDB dataset using Hugging Face's stratification"""
     print("Loading IMDB dataset...")
     dataset = load_dataset('imdb')
     
-    # Sample data for faster processing (remove for full dataset)
-    train_texts = dataset['train']['text'][:sample_size]
-    train_labels = dataset['train']['label'][:sample_size]
-    test_texts = dataset['test']['text'][:sample_size//2]
-    test_labels = dataset['test']['label'][:sample_size//2]
+    # Create stratified split for training data
+    train_split = dataset['train'].train_test_split(
+        test_size=test_ratio, 
+        stratify_by_column='label',
+        seed=random_state
+    )
+    
+    # Create stratified split for test data
+    test_split = dataset['test'].train_test_split(
+        test_size=test_ratio,  # Half of test data for validation
+        stratify_by_column='label',
+        seed=random_state
+    )
+    
+    # Get the data
+    train_texts = train_split['train']['text'][:sample_size]
+    train_labels = train_split['train']['label'][:sample_size]
+    test_texts = test_split['test']['text'][:sample_size//2]
+    test_labels = test_split['test']['label'][:sample_size//2]
+    
+    # Verify the distribution
+    print(f"Training set - Positive: {sum(train_labels)}, Negative: {len(train_labels) - sum(train_labels)}")
+    print(f"Test set - Positive: {sum(test_labels)}, Negative: {len(test_labels) - sum(test_labels)}")
     
     return train_texts, train_labels, test_texts, test_labels
-
-def visualize_embeddings(embeddings, labels, title="Embeddings Visualization"):
-    """Visualize reduced embeddings using UMAP"""
-    reducer = UMAP(n_components=2, random_state=42)
-    embeddings_2d = reducer.fit_transform(embeddings)
-    
-    plt.figure(figsize=(10, 8))
-    scatter = plt.scatter(embeddings_2d[:, 0], embeddings_2d[:, 1], 
-                         c=labels, cmap='coolwarm', alpha=0.6)
-    plt.colorbar(scatter)
-    plt.title(title)
-    plt.xlabel('UMAP Dimension 1')
-    plt.ylabel('UMAP Dimension 2')
-    plt.show()
-
-def main():
-    # Configuration
-    SAMPLE_SIZE = 2000  # Reduce for faster testing, increase for better results
-    EMBEDDING_DIM = 50
-    RANDOM_STATE = 42
-    
-    print("Starting BERT + XGBoost Sentiment Analysis...")
-    
-    # Load data
-    train_texts, train_labels, test_texts, test_labels = load_imdb_data(SAMPLE_SIZE)
-    
-    # Initialize BERT classifier
-    classifier = BERTSentimentClassifier()
-    
-    # Extract BERT embeddings
-    print("\nExtracting BERT embeddings for training data...")
-    start_time = time.time()
-    train_embeddings = classifier.get_bert_embeddings(train_texts)
-    print(f"Embedding extraction time: {time.time() - start_time:.2f} seconds")
-    
-    print("\nExtracting BERT embeddings for test data...")
-    test_embeddings = classifier.get_bert_embeddings(test_texts)
-    
-    # Reduce dimensions
-    print(f"\nReducing dimensions to {EMBEDDING_DIM} using PCA...")
-    train_embeddings_reduced, pca_reducer = classifier.reduce_dimensions(
-        train_embeddings, n_components=EMBEDDING_DIM, method='pca'
-    )
-    test_embeddings_reduced = pca_reducer.transform(test_embeddings)
-    
-    # Visualize reduced embeddings
-    visualize_embeddings(train_embeddings_reduced, train_labels, "Training Embeddings (PCA Reduced)")
-    
-    # Split training data for validation
-    X_train, X_val, y_train, y_val = train_test_split(
-        train_embeddings_reduced, train_labels, 
-        test_size=0.2, random_state=RANDOM_STATE, stratify=train_labels
-    )
-    
-    # Train XGBoost model
-    print("\nTraining XGBoost model...")
-    xgb_model = classifier.train_xgboost(X_train, y_train, X_val, y_val)
-    
-    # Evaluate on test set
-    print("\nEvaluating on test set...")
-    y_pred, y_pred_proba = classifier.evaluate_model(xgb_model, test_embeddings_reduced, test_labels)
-    
-    # Feature importance
-    plt.figure(figsize=(10, 8))
-    xgb.plot_importance(xgb_model, max_num_features=20)
-    plt.title('Top 20 Feature Importances')
-    plt.show()
-    
-    # Confusion matrix
-    cm = confusion_matrix(test_labels, y_pred)
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                xticklabels=['Negative', 'Positive'], 
-                yticklabels=['Negative', 'Positive'])
-    plt.title('Confusion Matrix')
-    plt.ylabel('True Label')
-    plt.xlabel('Predicted Label')
-    plt.show()
-    
-    return xgb_model, pca_reducer, classifier
-
-if __name__ == "__main__":
-    model, pca, classifier = main()
