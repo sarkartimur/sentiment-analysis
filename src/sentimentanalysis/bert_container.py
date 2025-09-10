@@ -51,3 +51,14 @@ class BERTContainer:
         
         return np.vstack(embeddings)
     
+    def enhance_embeddings(self, embeddings):
+        """Add engineered features to BERT embeddings"""
+        # Add magnitude of embeddings as a feature
+        magnitudes = np.linalg.norm(embeddings, axis=1, keepdims=True)
+        
+        # Add some statistical features
+        mean_features = np.mean(embeddings, axis=1, keepdims=True)
+        std_features = np.std(embeddings, axis=1, keepdims=True)
+        
+        return np.hstack([magnitudes, mean_features, std_features])
+    
