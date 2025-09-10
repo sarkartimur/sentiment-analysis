@@ -51,6 +51,31 @@ class BERTContainer:
         
         return np.vstack(embeddings)
     
+    def get_gradient_embeddings(self, texts, batch_size=16):
+        """Get embeddings using gradient information (more nuanced)"""
+        self.bert_model.train()  # Set to training mode for gradients
+        embeddings = []
+        
+        for i in range(0, len(texts), batch_size):
+            batch_texts = texts[i:i+batch_size]
+            
+            inputs = self.tokenizer(
+                batch_texts, padding=True, truncation=True, 
+                max_length=512, return_tensors='pt'
+            ).to(self.device)
+            
+            # Forward pass with gradient tracking
+            outputs = self.bert_model(**inputs)
+            # Use mean pooling of last hidden state
+            batch_embeddings = outputs.last_hidden_state.mean(dim=1).cpu().detach().numpy()
+            embeddings.append(batch_embeddings)
+
+            if (i // batch_size) % 10 == 0:
+                print(f"Processed {i}/{len(texts)} texts")
+        
+        self.bert_model.eval()  # Set back to evaluation mode
+        return np.vstack(embeddings)
+
     def enhance_embeddings(self, embeddings):
         """Add engineered features to BERT embeddings"""
         # Add magnitude of embeddings as a feature
