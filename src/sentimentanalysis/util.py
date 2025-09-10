@@ -1,10 +1,12 @@
 import pandas as pd
+import numpy as np
 from datasets import load_dataset
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.calibration import CalibratedClassifierCV
 import xgboost as xgb
 from sklearn.decomposition import PCA
 from umap import UMAP
@@ -20,6 +22,8 @@ def load_data(sample_size=2000, test_ratio=0.25):
     dataset = load_dataset('imdb')
     df = pd.concat([dataset['train'].to_pandas(), dataset['test'].to_pandas()], ignore_index=True)
     
+    print(df.head())
+
     X = df.drop('label', axis=1)
     y = df['label']
     X_train, X_test, y_train, y_test = train_test_split(
@@ -85,7 +89,12 @@ def train_svc(X_train, y_train):
     return grid_search.best_estimator_
 
 def train_logistic_regression(X_train, y_train):
-    model = LogisticRegression(random_state=RANDOM_SEED)
+    model = CalibratedClassifierCV(
+        LogisticRegression(random_state=RANDOM_SEED),
+        method='sigmoid', 
+        cv=5
+    )
+    # model = LogisticRegression(random_state=RANDOM_SEED)
     model.fit(X_train, y_train)
     return model
 
@@ -137,3 +146,14 @@ def reduce_dimensions(data, n_components=50, method='pca'):
     print(f"Reducing dimensions using {method}")
     reduced = reducer.fit_transform(data)
     return reduced, reducer
+
+def analyze_errors(y_test, y_pred, test_texts):
+    """Analyze where the model is making errors"""
+    incorrect_indices = np.where(y_pred != y_test)[0]
+    
+    # Look at some misclassified examples
+    for i in incorrect_indices[:10]:
+        print(f"\nIndex: {i}, True label: {y_test[i]}, Predicted: {y_pred[i]}")
+        print(f"Text: {test_texts[i][:200]}...")
+    
+    return incorrect_indices

@@ -10,15 +10,15 @@ import time
 
 
 SAMPLE_SIZE = 2000
+TEST_RATIO = 0.2
 EMBEDDING_DIM = 50
 POOLING_STRATEGY='mean'
 
 
-print("Starting BERT + XGBoost Sentiment Analysis...")
-
-train_texts, train_labels, test_texts, test_labels = util.load_data(sample_size=SAMPLE_SIZE, test_ratio=0.2)
+train_texts, train_labels, test_texts, test_labels = util.load_data(sample_size=SAMPLE_SIZE, test_ratio=TEST_RATIO)
 
 bert = BERTContainer()
+# bert = BERTContainer('bert-base-multilingual-cased')
 
 print("\nExtracting BERT embeddings for training data...")
 start_time = time.time()
@@ -46,6 +46,8 @@ ConfusionMatrixDisplay.from_predictions(test_labels, y_pred, normalize='all')
 accuracy = accuracy_score(test_labels, y_pred)
 print(f"Test Accuracy: {accuracy:.4f}")
 print(classification_report(test_labels, y_pred))
+
+incorrect_idices = util.analyze_errors(test_labels.values, y_pred, test_texts.values)
 
 
 def predict(text):
