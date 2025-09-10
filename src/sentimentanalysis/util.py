@@ -3,10 +3,13 @@ from datasets import load_dataset
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
 import xgboost as xgb
 from sklearn.decomposition import PCA
 from umap import UMAP
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
+from imblearn.pipeline import Pipeline as ImbPipeline
 
 
 RANDOM_SEED = 42
@@ -32,7 +35,7 @@ def load_data(sample_size=2000, test_ratio=0.25):
     
     return X_train, y_train, X_test, y_test
 
-def train_xgboost(X_train, y_train, X_val, y_val):
+def train_xgboost(X_train, y_train):
     param_grid = {
         'max_depth': [2, 3, 6, 9, 12],
         'learning_rate': [0.01, 0.05, 0.1, 0.2],
@@ -81,6 +84,47 @@ def train_svc(X_train, y_train):
     
     return grid_search.best_estimator_
 
+def train_logistic_regression(X_train, y_train):
+    model = LogisticRegression(random_state=RANDOM_SEED)
+    model.fit(X_train, y_train)
+    return model
+
+def choose_model(X_train, y_train):
+    pipeline = ImbPipeline([
+        ('classifier', LogisticRegression(random_state=RANDOM_SEED))
+    ])
+    param_grid = [
+        {
+            'classifier': [DecisionTreeClassifier(random_state=RANDOM_SEED)],
+            'classifier__max_depth': [3, 5, 10]
+        },
+        {
+            'classifier': [LogisticRegression(random_state=RANDOM_SEED)],
+            'classifier__C': [0.001, 0.01, 0.1, 1, 10, 100, 1000],
+            'classifier__penalty': ['l2']
+        },
+        {
+            'classifier': [SVC(random_state=RANDOM_SEED)],
+            'classifier__C': [0.5, 1, 10, 100],
+            'classifier__gamma': ['scale', 1, 0.1, 0.01, 0.001, 0.0001],
+            'classifier__kernel': ['rbf']
+        },
+    ]
+    grid_search = GridSearchCV(
+        estimator=pipeline,
+        param_grid=param_grid,
+        cv=5,
+        scoring='roc_auc',
+        verbose=3,
+        n_jobs=-1,
+        return_train_score=True
+    )
+    grid_search.fit(X_train, y_train)
+
+    print("Best parameters:", grid_search.best_params_)
+    print("Best cross-validation score:", grid_search.best_score_)
+    
+    return grid_search.best_estimator_
 
 def reduce_dimensions(data, n_components=50, method='pca'):
     if method == 'pca':

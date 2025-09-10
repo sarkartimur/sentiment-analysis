@@ -63,6 +63,7 @@ param_grid = [
         # 'smote__sampling_strategy': [0.1, 0.2]
     },
 ]
+# use for imbalanced data
 cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=RANDOM_SEED)
 grid_search = GridSearchCV(
     estimator=pipeline,
