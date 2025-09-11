@@ -13,7 +13,8 @@ dependencies:
   - scipy
   - seaborn
   - xgboost
-  - transformers
+  - transformers[torch]
+  - optuna
   - numpy
   - matplotlib
   - statsmodels

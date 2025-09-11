@@ -12,6 +12,7 @@ from sklearn.decomposition import PCA
 from umap import UMAP
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 from imblearn.pipeline import Pipeline as ImbPipeline
+from datasets import DatasetDict
 
 
 RANDOM_SEED = 42
@@ -39,6 +40,20 @@ def load_data(sample_size=2000, test_ratio=0.25):
     print(f"Testing set Positive: {sum(y_test)}, Negative: {len(y_test) - sum(y_test)}")
     
     return X_train, y_train, X_test, y_test
+
+def load_data_dict(sample_size=2000, test_ratio=0.25):
+    full_dataset = load_dataset('imdb')
+    small_train = full_dataset['train'].train_test_split(
+        train_size=sample_size, 
+        test_size=int(sample_size * test_ratio), 
+        seed=RANDOM_SEED, 
+        stratify_by_column='label'
+    )
+
+    return DatasetDict({
+        'train': small_train['train'],
+        'test': small_train['test']
+    })
 
 def train_xgboost(X_train, y_train):
     param_grid = {
