@@ -7,9 +7,10 @@ from sklearn.metrics import accuracy_score, classification_report, ConfusionMatr
 import util
 from util import RANDOM_SEED
 import time
+import pickle
 
 
-SAMPLE_SIZE = 2000
+SAMPLE_SIZE = 30000
 TEST_RATIO = 0.2
 EMBEDDING_DIM = 50
 POOLING_STRATEGY='mean'
@@ -41,7 +42,7 @@ print(f"Train set shape: {train_embeddings_reduced.shape}")
 # train_set = np.hstack((train_embeddings_reduced, bert.enhance_embeddings(train_embeddings)))
 # test_set = np.hstack((test_embeddings_reduced, bert.enhance_embeddings(test_embeddings)))
 
-model = util.train_logistic_regression(train_embeddings_reduced, train_labels)
+model = util.train_svc(train_embeddings_reduced, train_labels)
 y_pred = model.predict(test_embeddings_reduced)
 
 ConfusionMatrixDisplay.from_predictions(test_labels, y_pred, normalize='all')
@@ -56,3 +57,11 @@ def predict(text):
     e = bert.get_bert_embeddings(texts=[text], pooling_strategy=POOLING_STRATEGY)
     er = pca_reducer.transform(e)
     return model.predict_proba(er)
+
+def save(filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(model, f, protocol=5)
+
+def load(filename):
+    with open(filename, 'rb') as f:
+        return pickle.load(f)

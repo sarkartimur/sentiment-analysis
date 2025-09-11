@@ -84,7 +84,8 @@ def train_xgboost(X_train, y_train):
     
     return random_search.best_estimator_
 
-def train_svc(X_train, y_train):
+def svc_cv(X_train, y_train):
+    # best params: C = 100, gamma = 0.01
     param_grid = [
     {
         'C': [0.5, 1, 10, 100],
@@ -92,9 +93,10 @@ def train_svc(X_train, y_train):
         'kernel': ['rbf']
     }]
     grid_search = GridSearchCV(
-        SVC(random_state=RANDOM_SEED),
+        SVC(random_state=RANDOM_SEED, probability=True),
         param_grid,
         cv=5,
+        n_jobs=-1,
         verbose=3
     )
     grid_search.fit(X_train, y_train)
@@ -104,11 +106,22 @@ def train_svc(X_train, y_train):
     
     return grid_search.best_estimator_
 
+def train_svc(X_train, y_train):
+    model = CalibratedClassifierCV(
+        SVC(random_state=RANDOM_SEED, probability=True, C=100, gamma=0.01),
+        method='sigmoid', 
+        cv=5,
+        n_jobs=-1
+    )
+    model.fit(X_train, y_train)
+    return model
+
 def train_logistic_regression(X_train, y_train):
     model = CalibratedClassifierCV(
         LogisticRegression(random_state=RANDOM_SEED),
         method='sigmoid', 
-        cv=5
+        cv=5,
+        n_jobs=-1
     )
     # model = LogisticRegression(random_state=RANDOM_SEED)
     model.fit(X_train, y_train)
