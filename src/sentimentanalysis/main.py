@@ -11,13 +11,16 @@ import pickle
 
 
 SAMPLE_SIZE = 2000
-TEST_RATIO = 0.2
+TEST_RATIO = 0.25
 # Note: small values will lead to "bag of words problem"
 # e.g. "This movie is not bad" will be classified as negative
 # with high confidence, but longer, more nuanced text will be classified correctly
 EMBEDDING_DIM = 150
 POOLING_STRATEGY='mean'
 
+
+# Fix for non-deterministic cv/test accuracy
+np.random.seed(RANDOM_SEED)
 
 train_texts, train_labels, test_texts, test_labels = util.load_data(sample_size=SAMPLE_SIZE, test_ratio=TEST_RATIO)
 
@@ -45,7 +48,7 @@ print(f"Train set shape: {train_embeddings_reduced.shape}")
 # train_set = np.hstack((train_embeddings_reduced, bert.enhance_embeddings(train_embeddings)))
 # test_set = np.hstack((test_embeddings_reduced, bert.enhance_embeddings(test_embeddings)))
 
-model = util.train_logistic_regression(train_embeddings_reduced, train_labels)
+model = util.train_svc(train_embeddings_reduced, train_labels)
 y_pred = model.predict(test_embeddings_reduced)
 
 ConfusionMatrixDisplay.from_predictions(test_labels, y_pred, normalize='all')

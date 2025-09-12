@@ -97,6 +97,7 @@ def svc_cv(X_train, y_train):
         param_grid,
         cv=5,
         n_jobs=-1,
+        scoring='roc_auc',
         verbose=3
     )
     grid_search.fit(X_train, y_train)
@@ -108,7 +109,7 @@ def svc_cv(X_train, y_train):
 
 def train_svc(X_train, y_train):
     model = CalibratedClassifierCV(
-        SVC(random_state=RANDOM_SEED, probability=True, C=100, gamma=0.01),
+        SVC(random_state=RANDOM_SEED, probability=True, C=10, gamma=0.01),
         method='sigmoid', 
         cv=5,
         n_jobs=-1
