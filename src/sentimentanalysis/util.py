@@ -18,16 +18,14 @@ from datasets import DatasetDict
 RANDOM_SEED = 42
 
 
-def load_data(sample_size=2000, test_ratio=0.25):
+def load_data(sample_size=2000, test_ratio=0.25, minority_class=0, imbalance_ratio=1.0):
     print("Loading IMDB dataset...")
     dataset = load_dataset('imdb')
     df = pd.concat([dataset['train'].to_pandas(), dataset['test'].to_pandas()], ignore_index=True)
     
-    print(f"Data set shape: {df.shape}")
-    print(df.head())
-
-    X = df.drop('label', axis=1)
+    X = df['text']
     y = df['label']
+    
     X_train, X_test, y_train, y_test = train_test_split(
         X, y,
         train_size=sample_size,
@@ -36,10 +34,32 @@ def load_data(sample_size=2000, test_ratio=0.25):
         random_state=RANDOM_SEED
     )
     
-    print(f"Training set Positive: {sum(y_train)}, Negative: {len(y_train) - sum(y_train)}")
-    print(f"Testing set Positive: {sum(y_test)}, Negative: {len(y_test) - sum(y_test)}")
+    print(f"Original training set - Positive: {sum(y_train)}, Negative: {len(y_train) - sum(y_train)}")
     
-    return X_train, y_train, X_test, y_test
+    train_df = pd.DataFrame({'text': X_train, 'label': y_train})
+    
+    majority_df = train_df[train_df['label'] != minority_class]
+    minority_df = train_df[train_df['label'] == minority_class]
+    
+    target_minority_count = int(len(majority_df) * imbalance_ratio)
+    if len(minority_df) > target_minority_count:
+        minority_df = minority_df.sample(n=target_minority_count, random_state=RANDOM_SEED)
+    else:
+        print(f"Warning: Cannot achieve {imbalance_ratio} ratio - not enough minority samples")
+    
+    imbalanced_train_df = pd.concat([majority_df, minority_df])
+    # Shuffle
+    imbalanced_train_df = imbalanced_train_df.sample(frac=1, random_state=RANDOM_SEED).reset_index(drop=True)
+    
+    X_train_imbalanced = imbalanced_train_df['text']
+    y_train_imbalanced = imbalanced_train_df['label']
+    
+    print(f"Imbalanced training set - Class {minority_class} as minority")
+    print(f"Positive: {sum(y_train_imbalanced)}, Negative: {len(y_train_imbalanced) - sum(y_train_imbalanced)}")
+    print(f"Imbalance ratio: ~1:{round(1/imbalance_ratio)}")
+    print(f"Testing set - Positive: {sum(y_test)}, Negative: {len(y_test) - sum(y_test)}")
+    
+    return X_train_imbalanced, y_train_imbalanced, X_test, y_test
 
 def load_data_dict(sample_size=2000, test_ratio=0.25):
     full_dataset = load_dataset('imdb')
@@ -110,7 +130,7 @@ def svc_cv(X_train, y_train):
 def train_svc(X_train, y_train):
     model = CalibratedClassifierCV(
         SVC(random_state=RANDOM_SEED, probability=True, C=10, gamma=0.01),
-        method='sigmoid', 
+        method='sigmoid',
         cv=5,
         n_jobs=-1
     )
