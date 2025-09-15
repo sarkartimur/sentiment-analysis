@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score
 import util
 
-dataset = load_dataset('imdb')
+dataset = util.load_data_dict()
 
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
@@ -104,5 +104,5 @@ trainer.train()
 results = trainer.evaluate()
 print(f"Final evaluation results: {results}")
 
-trainer.save_model("./imdb_sentiment_full")
-tokenizer.save_pretrained("./imdb_sentiment_full")
+trainer.save_model("./imdb_sentiment_reduced")
+tokenizer.save_pretrained("./imdb_sentiment_reduced")

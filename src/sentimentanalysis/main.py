@@ -1,9 +1,8 @@
 import numpy as np
-from bert_container import BERTContainer
 import matplotlib.pyplot as plt
-import xgboost as xgb
-from sklearn.model_selection import train_test_split
+from bert_container import BERTContainer
 from sklearn.metrics import accuracy_score, classification_report, ConfusionMatrixDisplay
+from lime.lime_text import LimeTextExplainer
 import util
 from util import RANDOM_SEED
 import time
@@ -59,10 +58,25 @@ print(classification_report(test_labels, y_pred))
 incorrect_idices = util.analyze_errors(test_labels.values, y_pred, test_texts.values)
 
 
-def predict(text):
-    e = bert.get_bert_embeddings(texts=[text], pooling_strategy=POOLING_STRATEGY)
+def lime_explain(txt):
+    explainer = LimeTextExplainer(class_names=['Negative', 'Positive'])
+    exp = explainer.explain_instance(
+        txt, 
+        predict_arr,
+        num_features=10,
+        num_samples=3000
+    )
+    # exp.as_pyplot_figure()
+    # plt.show()
+    exp.show_in_notebook()
+
+def predict_arr(texts):
+    e = bert.get_bert_embeddings(texts=texts, pooling_strategy=POOLING_STRATEGY)
     er = pca_reducer.transform(e)
     return model.predict_proba(er)
+
+def predict(text):
+    return predict_arr([text])
 
 def save(filename):
     with open(filename, 'wb') as f:

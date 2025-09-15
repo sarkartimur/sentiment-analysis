@@ -22,6 +22,8 @@ def load_data(sample_size=2000, test_ratio=0.25, minority_class=0, imbalance_rat
     print("Loading IMDB dataset...")
     dataset = load_dataset('imdb')
     df = pd.concat([dataset['train'].to_pandas(), dataset['test'].to_pandas()], ignore_index=True)
+
+    print(df.head())
     
     X = df['text']
     y = df['label']
