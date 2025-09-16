@@ -1,12 +1,9 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from bert_container import BERTContainer
 from sklearn.metrics import accuracy_score, classification_report, ConfusionMatrixDisplay
-from lime.lime_text import LimeTextExplainer
 import util
 from util import RANDOM_SEED
 import time
-import pickle
 
 
 SAMPLE_SIZE = 2000
@@ -57,18 +54,8 @@ print(classification_report(test_labels, y_pred))
 
 incorrect_idices = util.analyze_errors(test_labels.values, y_pred, test_texts.values)
 
+util.calculate_certainties(model.predict_proba(test_embeddings_reduced), test_labels)
 
-def lime_explain(txt):
-    explainer = LimeTextExplainer(class_names=['Negative', 'Positive'])
-    exp = explainer.explain_instance(
-        txt, 
-        predict_arr,
-        num_features=20,
-        num_samples=3000
-    )
-    # exp.as_pyplot_figure()
-    # plt.show()
-    exp.show_in_notebook()
 
 def predict_arr(texts):
     e = bert.get_bert_embeddings(texts=texts, pooling_strategy=POOLING_STRATEGY)
@@ -77,11 +64,3 @@ def predict_arr(texts):
 
 def predict(text):
     return predict_arr([text])
-
-def save(filename):
-    with open(filename, 'wb') as f:
-        pickle.dump(model, f, protocol=5)
-
-def load(filename):
-    with open(filename, 'rb') as f:
-        return pickle.load(f)

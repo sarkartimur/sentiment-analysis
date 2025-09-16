@@ -39,15 +39,3 @@ def predict_sentiment(texts, device="cuda"):
 
 def predict(txt):
     return predict_sentiment([txt])
-
-def lime_explain(txt):
-    explainer = LimeTextExplainer(class_names=['Negative', 'Positive'])
-    exp = explainer.explain_instance(
-        txt, 
-        predict_sentiment,
-        num_features=20,
-        num_samples=3000
-    )
-    # exp.as_pyplot_figure()
-    # plt.show()
-    exp.show_in_notebook()
