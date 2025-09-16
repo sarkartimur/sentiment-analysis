@@ -45,7 +45,7 @@ def lime_explain(txt):
     exp = explainer.explain_instance(
         txt, 
         predict_sentiment,
-        num_features=10,
+        num_features=20,
         num_samples=3000
     )
     # exp.as_pyplot_figure()
