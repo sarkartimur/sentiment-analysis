@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score
 import util
 
+
 dataset = util.load_data_dict()
 
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")

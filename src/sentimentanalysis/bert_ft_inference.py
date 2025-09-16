@@ -1,42 +1,53 @@
+import numpy as np
 import torch
 from transformers import BertForSequenceClassification, BertTokenizer
+from lime.lime_text import LimeTextExplainer
 
 
-def predict_sentiment(text, model, tokenizer, device="cpu"):
-    model.eval()
-    model.to(device)
+MODEL_PATH = "./imdb_sentiment_reduced"
+MODEL = BertForSequenceClassification.from_pretrained(MODEL_PATH)
+TOKENIZER = BertTokenizer.from_pretrained(MODEL_PATH)
+
+
+def predict_sentiment(texts, device="cuda"):
+    MODEL.eval()
+    MODEL.to(device)
     
-    inputs = tokenizer(
-        text,
-        padding="max_length",
-        truncation=True,
-        max_length=512,
-        return_tensors="pt"
-    )
-    
-    # Move inputs to the same device as model
-    inputs = {k: v.to(device) for k, v in inputs.items()}
-    
-    with torch.no_grad():
-        outputs = model(**inputs)
-        logits = outputs.logits
-        probabilities = torch.softmax(logits, dim=-1)
-        confidence, predicted_class_id = torch.max(probabilities, dim=-1)
+    result = []
+    for i in range(0, len(texts)):
+        text = texts[i]
+
+        inputs = TOKENIZER(
+            text,
+            padding="max_length",
+            truncation=True,
+            max_length=512,
+            return_tensors="pt"
+        )
         
-        confidence = confidence.item()
-        predicted_class_id = predicted_class_id.item()
-        probabilities = probabilities.cpu().numpy()[0]
-    
-    return confidence, probabilities
+        # Move inputs to the same device as model
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        
+        with torch.no_grad():
+            outputs = MODEL(**inputs)
+            logits = outputs.logits
+            probabilities = torch.softmax(logits, dim=-1).cpu().numpy()
+            result.append(probabilities)
+        
+    return np.concatenate(result, axis=0)
 
-model_path = "./imdb_sentiment_full"
-model = BertForSequenceClassification.from_pretrained(model_path)
-tokenizer = BertTokenizer.from_pretrained(model_path)
 
+def predict(txt):
+    return predict_sentiment([txt])
 
-confidence, probs = predict_sentiment(
-    "The director did a marvelous job with this film!", 
-    model,
-    tokenizer
-)
-print(f"Result: ({confidence:.2%} confident)")
+def lime_explain(txt):
+    explainer = LimeTextExplainer(class_names=['Negative', 'Positive'])
+    exp = explainer.explain_instance(
+        txt, 
+        predict_sentiment,
+        num_features=10,
+        num_samples=3000
+    )
+    # exp.as_pyplot_figure()
+    # plt.show()
+    exp.show_in_notebook()
