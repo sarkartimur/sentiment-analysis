@@ -12,6 +12,7 @@ TEST_RATIO = 0.2
 # e.g. "This movie is not bad" will be classified as negative
 # with high confidence, but longer, more nuanced text will be classified correctly
 EMBEDDING_DIM = 150
+DIM_REDUCTION = 'pca'
 POOLING_STRATEGY='mean'
 
 
@@ -26,31 +27,27 @@ bert = BERTContainer()
 print("\nExtracting BERT embeddings for training data...")
 start_time = time.time()
 train_embeddings = bert.get_bert_embeddings(texts=train_texts.tolist(), pooling_strategy=POOLING_STRATEGY)
-# train_embeddings = bert.get_gradient_embeddings(texts=train_texts.iloc[:, 0].tolist())
 print(f"Embedding extraction time: {time.time() - start_time:.2f} seconds")
 
 print("\nExtracting BERT embeddings for test data...")
 test_embeddings = bert.get_bert_embeddings(texts=test_texts.tolist(), pooling_strategy=POOLING_STRATEGY)
-# test_embeddings = bert.get_gradient_embeddings(texts=test_texts.iloc[:, 0].tolist())
 
-print(f"\nReducing dimensions to {EMBEDDING_DIM} using PCA...")
+print(f"\nReducing dimensions to {EMBEDDING_DIM} using {DIM_REDUCTION}...")
 train_embeddings_reduced, pca_reducer = util.reduce_dimensions(
-    train_embeddings, n_components=EMBEDDING_DIM, method='pca'
+    train_embeddings, n_components=EMBEDDING_DIM, method=DIM_REDUCTION
 )
 test_embeddings_reduced = pca_reducer.transform(test_embeddings)
 
 print(f"Train set shape: {train_embeddings_reduced.shape}")
 
-# train_set = np.hstack((train_embeddings_reduced, bert.enhance_embeddings(train_embeddings)))
-# test_set = np.hstack((test_embeddings_reduced, bert.enhance_embeddings(test_embeddings)))
-
 model = util.train_svc(train_embeddings_reduced, train_labels)
 y_pred = model.predict(test_embeddings_reduced)
 
-ConfusionMatrixDisplay.from_predictions(test_labels, y_pred, normalize='all')
 accuracy = accuracy_score(test_labels, y_pred)
 print(f"Test Accuracy: {accuracy:.4f}")
 print(classification_report(test_labels, y_pred))
+
+ConfusionMatrixDisplay.from_predictions(test_labels, y_pred, normalize='all')
 
 incorrect_idices = util.analyze_errors(test_labels.values, y_pred, test_texts.values)
 
