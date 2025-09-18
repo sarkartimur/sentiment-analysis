@@ -231,7 +231,7 @@ def calculate_certainties(y_pred_proba, y_actual):
     # 1. Overall average certainty
     certainty_list = np.max(y_pred_proba, axis=1)
     overall_avg_certainty = np.mean(certainty_list)
-    print(f"Overall Avg. Certainty: {overall_avg_certainty:.4f}")
+    print(f"\nOverall Avg. Certainty: {overall_avg_certainty:.4f}")
 
     # 2. Average certainty by predicted class
     def avg_class_certainty(pclass):

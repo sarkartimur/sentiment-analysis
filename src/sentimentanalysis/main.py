@@ -1,6 +1,6 @@
 import numpy as np
 from bert_container import BERTContainer
-from sklearn.metrics import accuracy_score, classification_report, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, classification_report, precision_recall_curve, auc, roc_auc_score, ConfusionMatrixDisplay
 import util
 from util import RANDOM_SEED
 import time
@@ -39,19 +39,31 @@ train_embeddings_reduced, pca_reducer = util.reduce_dimensions(
 test_embeddings_reduced = pca_reducer.transform(test_embeddings)
 
 print(f"Train set shape: {train_embeddings_reduced.shape}")
+print(f"Test set shape: {test_embeddings_reduced.shape}")
 
 model = util.train_svc(train_embeddings_reduced, train_labels)
 y_pred = model.predict(test_embeddings_reduced)
+y_proba = model.predict_proba(test_embeddings_reduced)
 
-accuracy = accuracy_score(test_labels, y_pred)
-print(f"Test Accuracy: {accuracy:.4f}")
-print(classification_report(test_labels, y_pred))
+def compute_metrics():
+    accuracy = accuracy_score(test_labels, y_pred)
+    print(f"Test Accuracy: {accuracy:.4f}")
+    print(classification_report(test_labels, y_pred))
 
-ConfusionMatrixDisplay.from_predictions(test_labels, y_pred, normalize='all')
+    roc_auc = roc_auc_score(test_labels, y_proba[:, 1])
+    print(f"ROC-AUC: {roc_auc:.4f}")
+
+    precision, recall, thresholds = precision_recall_curve(test_labels, y_proba[:, 1])
+    pr_auc = auc(recall, precision)
+    print(f"PR-AUC: {pr_auc:.4f}")
+
+    util.calculate_certainties(y_proba, test_labels)
+
+    ConfusionMatrixDisplay.from_predictions(test_labels, y_pred, normalize='all')
+
+compute_metrics()
 
 incorrect_idices = util.analyze_errors(test_labels.values, y_pred, test_texts.values)
-
-util.calculate_certainties(model.predict_proba(test_embeddings_reduced), test_labels)
 
 
 def predict_arr(texts):
