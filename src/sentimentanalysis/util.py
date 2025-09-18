@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from datasets import load_dataset
-from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
@@ -223,35 +222,6 @@ def analyze_errors(y_test, y_pred, test_texts):
         print(f"Text: {test_texts[i][:200]}...")
     
     return incorrect_indices
-
-def calculate_certainties(y_pred_proba, y_actual):
-    # Get the predicted class by finding the column index with the max probability
-    y_pred = np.argmax(y_pred_proba, axis=1)
-
-    # 1. Overall average certainty
-    certainty_list = np.max(y_pred_proba, axis=1)
-    overall_avg_certainty = np.mean(certainty_list)
-    print(f"\nOverall Avg. Certainty: {overall_avg_certainty:.4f}")
-
-    # 2. Average certainty by predicted class
-    def avg_class_certainty(pclass):
-        mask = (y_pred == pclass)
-        avg_cert_pred_class = np.mean(y_pred_proba[mask, pclass])
-        print(f"Avg. Certainty for predictions of Class {pclass}: {avg_cert_pred_class:.4f}")
-
-    avg_class_certainty(1)
-    avg_class_certainty(0)
-
-    # 3. Average certainty by result type
-    def avg_pred_certainty(predicted_class, actual_class, result_type):
-        mask = (y_pred == predicted_class) & (y_actual == actual_class)
-        avg_cert_correct_class = np.mean(y_pred_proba[mask, predicted_class])
-        print(f"Avg. Certainty for Class {predicted_class} ({result_type}): {avg_cert_correct_class:.4f}")
-
-    avg_pred_certainty(1, 1, 'True Positives')
-    avg_pred_certainty(0, 0, 'True Negatives')
-    avg_pred_certainty(1, 0, 'False Positives')
-    avg_pred_certainty(0, 1, 'False Negatives')
 
 def serialize(filename, model):
     with open(filename, 'wb') as f:

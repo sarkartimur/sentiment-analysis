@@ -1,7 +1,7 @@
 import numpy as np
 from bert_container import BERTContainer
-from sklearn.metrics import accuracy_score, classification_report, precision_recall_curve, auc, roc_auc_score, ConfusionMatrixDisplay
 import util
+import metrics
 from util import RANDOM_SEED
 import time
 
@@ -19,18 +19,18 @@ POOLING_STRATEGY='mean'
 # Fix for non-deterministic cv/test accuracy
 np.random.seed(RANDOM_SEED)
 
-train_texts, train_labels, test_texts, test_labels = util.load_data(sample_size=SAMPLE_SIZE, test_ratio=TEST_RATIO, imbalance_ratio=1.0)
+X_train, y_train, X_test, y_test = util.load_data(sample_size=SAMPLE_SIZE, test_ratio=TEST_RATIO, imbalance_ratio=1.0)
 
 bert = BERTContainer()
 # bert = BERTContainer('bert-base-multilingual-cased')
 
 print("\nExtracting BERT embeddings for training data...")
 start_time = time.time()
-train_embeddings = bert.get_bert_embeddings(texts=train_texts.tolist(), pooling_strategy=POOLING_STRATEGY)
+train_embeddings = bert.get_bert_embeddings(texts=X_train.tolist(), pooling_strategy=POOLING_STRATEGY)
 print(f"Embedding extraction time: {time.time() - start_time:.2f} seconds")
 
 print("\nExtracting BERT embeddings for test data...")
-test_embeddings = bert.get_bert_embeddings(texts=test_texts.tolist(), pooling_strategy=POOLING_STRATEGY)
+test_embeddings = bert.get_bert_embeddings(texts=X_test.tolist(), pooling_strategy=POOLING_STRATEGY)
 
 print(f"\nReducing dimensions to {EMBEDDING_DIM} using {DIM_REDUCTION}...")
 train_embeddings_reduced, pca_reducer = util.reduce_dimensions(
@@ -41,31 +41,20 @@ test_embeddings_reduced = pca_reducer.transform(test_embeddings)
 print(f"Train set shape: {train_embeddings_reduced.shape}")
 print(f"Test set shape: {test_embeddings_reduced.shape}")
 
-model = util.train_svc(train_embeddings_reduced, train_labels)
+model = util.train_svc(train_embeddings_reduced, y_train)
 y_pred = model.predict(test_embeddings_reduced)
-y_proba = model.predict_proba(test_embeddings_reduced)
+y_pred_proba = model.predict_proba(test_embeddings_reduced)
 
-def compute_metrics():
-    accuracy = accuracy_score(test_labels, y_pred)
-    print(f"Test Accuracy: {accuracy:.4f}")
-    print(classification_report(test_labels, y_pred))
+metrics.compute_metrics(y_test, y_pred, y_pred_proba)
 
-    roc_auc = roc_auc_score(test_labels, y_proba[:, 1])
-    print(f"ROC-AUC: {roc_auc:.4f}")
+incorrect_idices = util.analyze_errors(y_test.values, y_pred, X_test.values)
 
-    precision, recall, thresholds = precision_recall_curve(test_labels, y_proba[:, 1])
-    pr_auc = auc(recall, precision)
-    print(f"PR-AUC: {pr_auc:.4f}")
+# metrics.plot_roc_auc(y_test, y_pred_proba)
 
-    util.calculate_certainties(y_proba, test_labels)
-
-    ConfusionMatrixDisplay.from_predictions(test_labels, y_pred, normalize='all')
-
-compute_metrics()
-
-incorrect_idices = util.analyze_errors(test_labels.values, y_pred, test_texts.values)
+# metrics.plot_threshold_graph(y_test, y_pred_proba)
 
 
+# todo make bert singleton, move these to util
 def predict_arr(texts):
     e = bert.get_bert_embeddings(texts=texts, pooling_strategy=POOLING_STRATEGY)
     er = pca_reducer.transform(e)
