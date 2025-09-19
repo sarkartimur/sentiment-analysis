@@ -24,39 +24,38 @@ def compute_metrics(y_test, y_pred, y_pred_proba):
     pr_auc = auc(recall, precision)
     print(f"PR-AUC: {pr_auc:.4f}")
 
-    __calculate_certainties(y_pred_proba, y_test)
+    __calculate_confidence(y_pred_proba, y_test)
 
     ConfusionMatrixDisplay.from_predictions(y_test, y_pred, normalize='all')
 
 
-def __calculate_certainties(y_pred_proba, y_test):
-    # Get the predicted class by finding the column index with the max probability
+def __calculate_confidence(y_pred_proba, y_test):
     y_pred = np.argmax(y_pred_proba, axis=1)
 
-    # 1. Overall average certainty
+    # 1. Overall average confidence
     certainty_list = np.max(y_pred_proba, axis=1)
     overall_avg_certainty = np.mean(certainty_list)
-    print(f"\nOverall Avg. Certainty: {overall_avg_certainty:.4f}")
+    print(f"\nOverall Avg. confidence: {overall_avg_certainty:.4f}")
 
-    # 2. Average certainty by predicted class
-    def avg_class_certainty(pclass):
+    # 2. Average confidence by predicted class
+    def avg_class_confidence(pclass):
         mask = (y_pred == pclass)
-        avg_cert_pred_class = np.mean(y_pred_proba[mask, pclass])
-        print(f"Avg. Certainty for predictions of Class {pclass}: {avg_cert_pred_class:.4f}")
+        avg_conf_pred_class = np.mean(y_pred_proba[mask, pclass])
+        print(f"Avg. confidence for predictions of Class {pclass}: {avg_conf_pred_class:.4f}")
 
-    avg_class_certainty(1)
-    avg_class_certainty(0)
+    avg_class_confidence(1)
+    avg_class_confidence(0)
 
-    # 3. Average certainty by result type
-    def avg_pred_certainty(predicted_class, actual_class, result_type):
+    # 3. Average confidence by result type
+    def avg_pred_confidence(predicted_class, actual_class, result_type):
         mask = (y_pred == predicted_class) & (y_test == actual_class)
-        avg_cert_correct_class = np.mean(y_pred_proba[mask, predicted_class])
-        print(f"Avg. Certainty for Class {predicted_class} ({result_type}): {avg_cert_correct_class:.4f}")
+        avg_conf_correct_class = np.mean(y_pred_proba[mask, predicted_class])
+        print(f"Avg. confidence for Class {predicted_class} ({result_type}): {avg_conf_correct_class:.4f}")
 
-    avg_pred_certainty(1, 1, 'True Positives')
-    avg_pred_certainty(0, 0, 'True Negatives')
-    avg_pred_certainty(1, 0, 'False Positives')
-    avg_pred_certainty(0, 1, 'False Negatives')
+    avg_pred_confidence(1, 1, 'True Positives')
+    avg_pred_confidence(0, 0, 'True Negatives')
+    avg_pred_confidence(1, 0, 'False Positives')
+    avg_pred_confidence(0, 1, 'False Negatives')
 
 
 def plot_roc_auc(y_test, y_pred_proba):

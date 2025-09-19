@@ -158,14 +158,15 @@ ADASYN generates more samples near boundaries, while SMOTE does balanced distrib
     $$
 - F1 score - harmonic mean of precision and recall. Balances both metrics (best for severe imbalance).
 - ROC-AUC.
-    ROC Curve (Receiver Operating Characteristic): Plots True Positive Rate (recall) vs. False Positive Rate (1 - specificity) at various thresholds.
+    ROC Curve (Receiver Operating Characteristic): Plots True Positive Rate (recall) vs. False Positive Rate (1 - specificity) at various thresholds. Better than accuracy, since unlike accuracy it accounts for all possible thresholds, accuracy only accounts for a single threshold (usually the default - 0.5)
 
     AUC (Area Under Curve). 1.0 = Perfect classifier. 0.5 = Random guessing.
     
-    Useful for binary classification with moderate imbalance.
+    Metric of choice for balanced data and moderate imbalance.
 - PR-AUC (Precision-Recall AUC) - focuses on precision-recall trade-off.
 
-    Better than ROC-AUC for severe imbalance (ignores true negatives).
+    Better than ROC-AUC for severe imbalance (focused on positive class).
+    Note: use PR-AUC when positive class (minority) is most important, use ROC-AUC when both classes are important.
 - Matthews Correlation Coefficient (MCC).
 1 = Perfect prediction, 0 = Random, -1 = Inverse prediction.
 Robust to imbalance.
