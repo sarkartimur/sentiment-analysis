@@ -19,7 +19,7 @@ POOLING_STRATEGY='mean'
 # Fix for non-deterministic cv/test accuracy
 np.random.seed(RANDOM_SEED)
 
-X_train, y_train, X_test, y_test = util.load_data(sample_size=SAMPLE_SIZE, test_ratio=TEST_RATIO, imbalance_ratio=1.0)
+X_train, y_train, X_test, y_test = util.load_data(sample_size=SAMPLE_SIZE, test_ratio=TEST_RATIO, imbalance_ratio=1)
 
 bert = BERTContainer()
 # bert = BERTContainer('bert-base-multilingual-cased')
@@ -44,6 +44,9 @@ print(f"Test set shape: {test_embeddings_reduced.shape}")
 model = util.train_svc(train_embeddings_reduced, y_train)
 y_pred = model.predict(test_embeddings_reduced)
 y_pred_proba = model.predict_proba(test_embeddings_reduced)
+
+# threshold = 0.85
+# y_pred = (y_pred_proba[:, 1] >= threshold).astype(int)
 
 metrics.compute_metrics(y_test, y_pred, y_pred_proba)
 

@@ -148,13 +148,17 @@ ADASYN generates more samples near boundaries, while SMOTE does balanced distrib
     $$
     \text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}
     $$
-    Recall  (also called Sensitivity or True Positive Rate) - measure the ability of a model to correctly identify all relevant instances of the positive class. "Out of all actual positive cases, how many did the model correctly predict?"
+    Recall (also called Sensitivity or True Positive Rate) - measure the ability of a model to correctly identify all relevant instances of the positive class. "Out of all actual positive cases, how many did the model correctly predict?"
     $$
     \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}
     $$
+    Specificity (also called True Negative Rate) - measures a model's ability to correctly identify negative cases. "When the true condition is actually negative, how many did the model correctly predict?"
+    $$
+    \text{Specificity} = \frac{\text{TN}}{\text{TN} + \text{FP}}
+    $$
 - F1 score - harmonic mean of precision and recall. Balances both metrics (best for severe imbalance).
 - ROC-AUC.
-    ROC Curve (Receiver Operating Characteristic): Plots True Positive Rate (recall) vs. False Positive Rate (FPR) at various thresholds.
+    ROC Curve (Receiver Operating Characteristic): Plots True Positive Rate (recall) vs. False Positive Rate (1 - specificity) at various thresholds.
 
     AUC (Area Under Curve). 1.0 = Perfect classifier. 0.5 = Random guessing.
     
