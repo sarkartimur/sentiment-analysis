@@ -1,6 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, classification_report, precision_recall_curve, auc, roc_auc_score, roc_curve, ConfusionMatrixDisplay
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    precision_recall_curve,
+    auc,
+    roc_auc_score,
+    roc_curve,
+    ConfusionMatrixDisplay
+)
+from sklearn.calibration import calibration_curve
 
 
 def compute_metrics(y_test, y_pred, y_pred_proba):
@@ -20,7 +29,7 @@ def compute_metrics(y_test, y_pred, y_pred_proba):
     ConfusionMatrixDisplay.from_predictions(y_test, y_pred, normalize='all')
 
 
-def __calculate_certainties(y_pred_proba, y_actual):
+def __calculate_certainties(y_pred_proba, y_test):
     # Get the predicted class by finding the column index with the max probability
     y_pred = np.argmax(y_pred_proba, axis=1)
 
@@ -40,7 +49,7 @@ def __calculate_certainties(y_pred_proba, y_actual):
 
     # 3. Average certainty by result type
     def avg_pred_certainty(predicted_class, actual_class, result_type):
-        mask = (y_pred == predicted_class) & (y_actual == actual_class)
+        mask = (y_pred == predicted_class) & (y_test == actual_class)
         avg_cert_correct_class = np.mean(y_pred_proba[mask, predicted_class])
         print(f"Avg. Certainty for Class {predicted_class} ({result_type}): {avg_cert_correct_class:.4f}")
 
@@ -70,13 +79,9 @@ def plot_roc_auc(y_test, y_pred_proba):
 
 
 def plot_threshold_graph(y_test, y_pred_proba):
+    y_pred_proba = y_pred_proba[:, 1]
     thresholds = np.linspace(0, 1, 100)
-    accuracies = []
-    for thresh in thresholds:
-        y_pred_binary = (y_pred_proba[:, 1] >= thresh).astype(int)
-        acc = accuracy_score(y_test, y_pred_binary)
-        accuracies.append(acc)
-
+    accuracies = [accuracy_score(y_test, (y_pred_proba >= t).astype(int)) for t in thresholds]
     best_idx = np.argmax(accuracies)
     best_threshold = thresholds[best_idx]
     best_accuracy = accuracies[best_idx]
@@ -96,3 +101,36 @@ def plot_threshold_graph(y_test, y_pred_proba):
 
     print(f"Default threshold (0.5) accuracy: {accuracies[50]:.3f}")
     print(f"Best threshold ({best_threshold:.3f}) accuracy: {best_accuracy:.3f}")
+
+def plot_class_overlap_graph(y_test, y_pred_proba):
+    y_pred_proba = y_pred_proba[:, 1]
+    thresholds = np.linspace(0.3, 0.7, 100)
+    accuracies = [accuracy_score(y_test, (y_pred_proba >= t).astype(int)) for t in thresholds]
+    optimal_threshold = thresholds[np.argmax(accuracies)]
+
+    plt.figure(figsize=(12, 5))
+    plt.hist(y_pred_proba[y_test == 0], bins=30, alpha=0.7, label='Class 0', density=True)
+    plt.hist(y_pred_proba[y_test == 1], bins=30, alpha=0.7, label='Class 1', density=True)
+    plt.axvline(0.5, color='black', linestyle='--', label='Default threshold (0.5)')
+    plt.axvline(optimal_threshold, color='red', linestyle='--', 
+            label=f'Optimal threshold ({optimal_threshold:.3f})')
+    plt.xlabel('Predicted Probability')
+    plt.ylabel('Density')
+    plt.title('Class Overlap and Asymmetric Distributions')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.show()
+
+def plot_calibration_graph(y_test, y_pred_proba):
+    y_pred_proba = y_pred_proba[:, 1]
+    prob_true, prob_pred = calibration_curve(y_test, y_pred_proba, n_bins=5)
+
+    plt.figure(figsize=(10, 4))
+    plt.plot(prob_pred, prob_true, 's-', label='Model calibration')
+    plt.plot([0, 1], [0, 1], '--', label='Perfectly calibrated')
+    plt.xlabel('Predicted Probability')
+    plt.ylabel('True Probability')
+    plt.title('Curve ABOVE Diagonal\n"Too cautious, too pessimistic"')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.show()

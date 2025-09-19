@@ -56,6 +56,10 @@ incorrect_idices = util.analyze_errors(y_test.values, y_pred, X_test.values)
 
 # metrics.plot_threshold_graph(y_test, y_pred_proba)
 
+# metrics.plot_class_overlap_graph(y_test, y_pred_proba)
+
+# metrics.plot_calibration_graph(y_test, y_pred_proba)
+
 
 # todo make bert singleton, move these to util
 def predict_arr(texts):
