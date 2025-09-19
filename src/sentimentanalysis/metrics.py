@@ -104,7 +104,7 @@ def plot_threshold_graph(y_test, y_pred_proba):
 
 def plot_class_overlap_graph(y_test, y_pred_proba):
     y_pred_proba = y_pred_proba[:, 1]
-    thresholds = np.linspace(0.3, 0.7, 100)
+    thresholds = np.linspace(0, 1, 100)
     accuracies = [accuracy_score(y_test, (y_pred_proba >= t).astype(int)) for t in thresholds]
     optimal_threshold = thresholds[np.argmax(accuracies)]
 

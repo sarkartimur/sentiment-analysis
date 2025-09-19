@@ -1,7 +1,8 @@
 import numpy as np
 import torch
 from transformers import BertForSequenceClassification, BertTokenizer
-from lime.lime_text import LimeTextExplainer
+import util
+import metrics
 
 
 MODEL_PATH = "./imdb_sentiment_reduced"
@@ -36,6 +37,24 @@ def predict_sentiment(texts, device="cuda"):
         
     return np.concatenate(result, axis=0)
 
-
 def predict(txt):
     return predict_sentiment([txt])
+
+
+X_train, y_train, X_test, y_test = util.load_data(sample_size=2000, test_ratio=0.2, imbalance_ratio=1)
+
+threshold = 0.5
+y_pred_proba = predict_sentiment(X_test.tolist())
+y_pred = (y_pred_proba[:, 1] >= threshold).astype(int)
+
+metrics.compute_metrics(y_test, y_pred, y_pred_proba)
+
+incorrect_idices = util.analyze_errors(y_test.values, y_pred, X_test.values)
+
+# metrics.plot_roc_auc(y_test, y_pred_proba)
+
+# metrics.plot_threshold_graph(y_test, y_pred_proba)
+
+# metrics.plot_class_overlap_graph(y_test, y_pred_proba)
+
+# metrics.plot_calibration_graph(y_test, y_pred_proba)
