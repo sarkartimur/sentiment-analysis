@@ -1,4 +1,5 @@
 import numpy as np
+import data_loader as dl
 from bert_container import BERTContainer
 import util
 import metrics
@@ -6,7 +7,7 @@ from util import RANDOM_SEED
 import time
 
 
-SAMPLE_SIZE = 3000
+SAMPLE_SIZE = 4000
 # Note: small values will lead to "bag of words problem"
 # e.g. "This movie is not bad" will be classified as negative
 # with high confidence, but longer, more nuanced text will be classified correctly
@@ -18,7 +19,8 @@ POOLING_STRATEGY='mean'
 # Fix for non-deterministic cv/test accuracy
 np.random.seed(RANDOM_SEED)
 
-X_train, y_train, X_test, y_test, X_cal, y_cal = util.load_data(sample_size=SAMPLE_SIZE, imbalance_ratio=0.3)
+dl = dl.DataLoader()
+X_train, y_train, X_test, y_test, X_cal, y_cal = dl.load_data(sample_size=SAMPLE_SIZE, calibration_ratio=0.5)
 
 bert = BERTContainer()
 # bert = BERTContainer('bert-base-multilingual-cased')

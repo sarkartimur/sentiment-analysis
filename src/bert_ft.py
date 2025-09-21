@@ -1,23 +1,24 @@
 import torch
+import data_loader as dl
 from transformers import BertTokenizer, BertForSequenceClassification, TrainingArguments, Trainer
 from datasets import load_dataset
 import numpy as np
 from sklearn.metrics import accuracy_score
-import util
 
 
-dataset = util.load_data_dict()
+dl = dl.DataLoader()
+dataset = dl.load_data_dict()
 
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 def tokenize_function(examples):
-    return tokenizer(examples["text"], 
-                    padding="max_length", 
-                    truncation=True, 
+    return tokenizer(examples["features"],
+                    padding="max_length",
+                    truncation=True,
                     max_length=512)
 
 tokenized_datasets = dataset.map(tokenize_function, batched=True)
-tokenized_datasets = tokenized_datasets.rename_column("label", "labels")
+# tokenized_datasets = tokenized_datasets.rename_column("label", "labels")
 tokenized_datasets.set_format("torch", 
                             columns=["input_ids", "attention_mask", "labels"])
 
@@ -59,7 +60,7 @@ training_args = TrainingArguments(
     num_train_epochs=3,
     per_device_train_batch_size=8,
     per_device_eval_batch_size=8,
-    evaluation_strategy="epoch",
+    eval_strategy="epoch",
     logging_dir="./logs",
     logging_steps=100,
     learning_rate=2e-5,

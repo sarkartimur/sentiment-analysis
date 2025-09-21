@@ -27,4 +27,5 @@ dependencies:
   - pip:
     - ucimlrepo
     - kagglehub
+    - accelerate
     # pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu129

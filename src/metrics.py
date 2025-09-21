@@ -16,7 +16,7 @@ from sklearn.calibration import CalibrationDisplay
 
 def compute_metrics(y_test, y_pred, y_pred_proba):
     accuracy = accuracy_score(y_test, y_pred)
-    print(f"Test Accuracy: {accuracy:.4f}")
+    print(f"\nTest Accuracy: {accuracy:.4f}")
     print(classification_report(y_test, y_pred))
 
     roc_auc = roc_auc_score(y_test, y_pred_proba)
@@ -30,6 +30,8 @@ def compute_metrics(y_test, y_pred, y_pred_proba):
 
 
 def __calculate_confidence(y_pred, y_pred_proba, y_test):
+    print("\n")
+
     # 1. Average confidence by predicted class
     def avg_class_confidence(pclass):
         mask = (y_pred == pclass)
@@ -69,7 +71,7 @@ def __plot_threshold_graph(y_test, y_pred_proba):
     plt.plot(thresholds, accuracies, 'b-', linewidth=2)
     plt.axvline(x=0.5, color='r', linestyle='--', label=f'Default Threshold (0.5)')
     plt.axvline(x=best_threshold, color='g', linestyle='--', 
-                label=f'Optimal Threshold ({best_threshold:.2f})')
+                label=f'Optimal Threshold ({best_threshold:.3f})')
     plt.scatter(best_threshold, best_accuracy, color='green', s=100, zorder=5)
     plt.xlabel('Classification Threshold')
     plt.ylabel('Accuracy')
@@ -77,9 +79,6 @@ def __plot_threshold_graph(y_test, y_pred_proba):
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.show()
-
-    print(f"Default threshold (0.5) accuracy: {accuracies[50]:.3f}")
-    print(f"Best threshold ({best_threshold:.3f}) accuracy: {best_accuracy:.3f}")
 
 def __plot_class_overlap_graph(y_test, y_pred_proba):
     thresholds = np.linspace(0, 1, 100)
