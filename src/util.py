@@ -6,6 +6,7 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.isotonic import IsotonicRegression
 import xgboost as xgb
 from sklearn.decomposition import PCA
 from umap import UMAP
@@ -19,7 +20,7 @@ import pickle
 RANDOM_SEED = 42
 
 
-def load_data(sample_size=2000, test_ratio=0.25, minority_class=0, imbalance_ratio=1.0):
+def load_data(sample_size=2000, test_ratio=0.4, calibration_ratio=0.5, minority_class=1, imbalance_ratio=1.0):
     print("Loading IMDB dataset...")
     dataset = load_dataset('imdb')
     df = pd.concat([dataset['train'].to_pandas(), dataset['test'].to_pandas()], ignore_index=True)
@@ -29,12 +30,15 @@ def load_data(sample_size=2000, test_ratio=0.25, minority_class=0, imbalance_rat
     X = df['text']
     y = df['label']
     
-    X_train, X_test, y_train, y_test = train_test_split(
+    X_train, X_temp, y_train, y_temp = train_test_split(
         X, y,
         train_size=sample_size,
         test_size=int(sample_size * test_ratio),
         stratify=y,
         random_state=RANDOM_SEED
+    )
+    X_cal, X_test, y_cal, y_test = train_test_split(
+        X_temp, y_temp, test_size=calibration_ratio, random_state=RANDOM_SEED, stratify=y_temp
     )
     
     print(f"Original training set - Positive: {sum(y_train)}, Negative: {len(y_train) - sum(y_train)}")
@@ -60,9 +64,9 @@ def load_data(sample_size=2000, test_ratio=0.25, minority_class=0, imbalance_rat
     print(f"Imbalanced training set - Class {minority_class} as minority")
     print(f"Positive: {sum(y_train_imbalanced)}, Negative: {len(y_train_imbalanced) - sum(y_train_imbalanced)}")
     print(f"Imbalance ratio: ~1:{round(1/imbalance_ratio)}")
-    print(f"Testing set - Positive: {sum(y_test)}, Negative: {len(y_test) - sum(y_test)}")
+    print(f"Testing set - Positive: {sum(y_temp)}, Negative: {len(y_temp) - sum(y_temp)}")
     
-    return X_train_imbalanced, y_train_imbalanced, X_test, y_test
+    return X_train_imbalanced, y_train_imbalanced, X_temp, y_temp, X_cal, y_cal
 
 def load_data_dict(sample_size=2000, test_ratio=0.25):
     full_dataset = load_dataset('imdb')
@@ -111,8 +115,8 @@ def svc_cv(X_train, y_train):
     # best params: C = 100, gamma = 0.01
     param_grid = [
     {
-        'C': [0.5, 1, 10, 100],
-        'gamma': ['scale', 1, 0.1, 0.01, 0.001, 0.0001],
+        'C': [0.5, 1, 10, 30, 45, 60, 90, 100],
+        'gamma': ['scale', 1, 0.1, 0.01, 0.005, 0.001, 0.0005],
         'kernel': ['rbf']
     }]
     grid_search = GridSearchCV(
@@ -130,15 +134,29 @@ def svc_cv(X_train, y_train):
     
     return grid_search.best_estimator_
 
-def train_svc(X_train, y_train):
-    model = CalibratedClassifierCV(
-        SVC(random_state=RANDOM_SEED, probability=True, C=10, gamma=0.01),
-        method='sigmoid',
-        cv=5,
-        n_jobs=-1
-    )
+def train_svc(X_train, y_train, X_cal, y_cal):
+    model = SVC(random_state=RANDOM_SEED, probability=True, C=60, gamma=0.001)
+    
+    # # Stage 1: Sigmoid calibration
+    # model = CalibratedClassifierCV(model, method='isotonic', cv=5)
+    # model.fit(X_train, y_train)
+
+    # # Stage 2: Isotonic on top of sigmoid
+    # model = CalibratedClassifierCV(model, method='sigmoid', cv=5)
+    
+    # iso = IsotonicRegression(out_of_bounds='clip')
+
+    # More aggressive isotonic - allows more extreme adjustments
+    iso = IsotonicRegression(out_of_bounds='clip', 
+                                    increasing=True,  # Force monotonic
+                                    y_min=0.0, y_max=1.0)  # Full range
+
     model.fit(X_train, y_train)
-    return model
+
+    X_cal = model.predict_proba(X_cal)[:, 1]
+    iso.fit(X_cal, y_cal)
+    
+    return model, iso
 
 def train_logistic_regression(X_train, y_train):
     model = CalibratedClassifierCV(

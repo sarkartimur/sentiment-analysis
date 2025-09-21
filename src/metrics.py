@@ -7,7 +7,6 @@ from sklearn.metrics import (
     precision_recall_curve,
     auc,
     roc_auc_score,
-    roc_curve,
     ConfusionMatrixDisplay,
     RocCurveDisplay,
     PrecisionRecallDisplay
@@ -20,38 +19,31 @@ def compute_metrics(y_test, y_pred, y_pred_proba):
     print(f"Test Accuracy: {accuracy:.4f}")
     print(classification_report(y_test, y_pred))
 
-    roc_auc = roc_auc_score(y_test, y_pred_proba[:, 1])
+    roc_auc = roc_auc_score(y_test, y_pred_proba)
     print(f"ROC-AUC: {roc_auc:.4f}")
 
-    precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba[:, 1])
+    precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
     pr_auc = auc(recall, precision)
     print(f"PR-AUC: {pr_auc:.4f}")
 
-    __calculate_confidence(y_pred_proba, y_test)
+    __calculate_confidence(y_pred, y_pred_proba, y_test)
 
 
-def __calculate_confidence(y_pred_proba, y_test):
-    y_pred = np.argmax(y_pred_proba, axis=1)
-
-    # 1. Overall average confidence
-    certainty_list = np.max(y_pred_proba, axis=1)
-    overall_avg_certainty = np.mean(certainty_list)
-    print(f"\nOverall Avg. confidence: {overall_avg_certainty:.4f}")
-
-    # 2. Average confidence by predicted class
+def __calculate_confidence(y_pred, y_pred_proba, y_test):
+    # 1. Average confidence by predicted class
     def avg_class_confidence(pclass):
         mask = (y_pred == pclass)
-        avg_conf_pred_class = np.mean(y_pred_proba[mask, pclass])
+        avg_conf_pred_class = np.mean(y_pred_proba[mask]) if pclass == 1 else np.mean(1 - y_pred_proba[mask])
         print(f"Avg. confidence for predictions of Class {pclass}: {avg_conf_pred_class:.4f}")
 
     avg_class_confidence(1)
     avg_class_confidence(0)
 
-    # 3. Average confidence by result type
-    def avg_pred_confidence(predicted_class, actual_class, result_type):
-        mask = (y_pred == predicted_class) & (y_test == actual_class)
-        avg_conf_correct_class = np.mean(y_pred_proba[mask, predicted_class])
-        print(f"Avg. confidence for Class {predicted_class} ({result_type}): {avg_conf_correct_class:.4f}")
+    # 2. Average confidence by result type
+    def avg_pred_confidence(pclass, actual_class, result_type):
+        mask = (y_pred == pclass) & (y_test == actual_class)
+        avg_conf_correct_class = np.mean(y_pred_proba[mask]) if pclass == 1 else np.mean(1 - y_pred_proba[mask])
+        print(f"Avg. confidence for Class {pclass} ({result_type}): {avg_conf_correct_class:.4f}")
 
     avg_pred_confidence(1, 1, 'True Positives')
     avg_pred_confidence(0, 0, 'True Negatives')
@@ -59,8 +51,6 @@ def __calculate_confidence(y_pred_proba, y_test):
     avg_pred_confidence(0, 1, 'False Negatives')
 
 def plot_graphs(y_test, y_pred, y_pred_proba):
-    y_pred_proba = y_pred_proba[:, 1]
-    
     ConfusionMatrixDisplay.from_predictions(y_test, y_pred, normalize='all')
     RocCurveDisplay.from_predictions(y_test, y_pred_proba)
     PrecisionRecallDisplay.from_predictions(y_test, y_pred_proba)
