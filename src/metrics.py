@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -7,9 +8,11 @@ from sklearn.metrics import (
     auc,
     roc_auc_score,
     roc_curve,
-    ConfusionMatrixDisplay
+    ConfusionMatrixDisplay,
+    RocCurveDisplay,
+    PrecisionRecallDisplay
 )
-from sklearn.calibration import calibration_curve
+from sklearn.calibration import CalibrationDisplay
 
 
 def compute_metrics(y_test, y_pred, y_pred_proba):
@@ -25,8 +28,6 @@ def compute_metrics(y_test, y_pred, y_pred_proba):
     print(f"PR-AUC: {pr_auc:.4f}")
 
     __calculate_confidence(y_pred_proba, y_test)
-
-    ConfusionMatrixDisplay.from_predictions(y_test, y_pred, normalize='all')
 
 
 def __calculate_confidence(y_pred_proba, y_test):
@@ -57,28 +58,17 @@ def __calculate_confidence(y_pred_proba, y_test):
     avg_pred_confidence(1, 0, 'False Positives')
     avg_pred_confidence(0, 1, 'False Negatives')
 
-
-def plot_roc_auc(y_test, y_pred_proba):
-    fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba[:, 1])
-    roc_auc = auc(fpr, tpr)
-
-    plt.figure(figsize=(8, 8))
-    plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.3f})')
-    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--', label='Random (AUC = 0.5)')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate (1 - Specificity)')
-    plt.ylabel('True Positive Rate (Recall/Sensitivity)')
-    plt.title('Receiver Operating Characteristic (ROC) Curve')
-    plt.legend(loc='lower right')
-    plt.grid(True, alpha=0.3)
-    plt.text(0.6, 0.3, f'AUC = {roc_auc:.3f}', fontsize=12,
-             bbox=dict(facecolor='white', alpha=0.8))
-    plt.show()
-
-
-def plot_threshold_graph(y_test, y_pred_proba):
+def plot_graphs(y_test, y_pred, y_pred_proba):
     y_pred_proba = y_pred_proba[:, 1]
+    
+    ConfusionMatrixDisplay.from_predictions(y_test, y_pred, normalize='all')
+    RocCurveDisplay.from_predictions(y_test, y_pred_proba)
+    PrecisionRecallDisplay.from_predictions(y_test, y_pred_proba)
+    __plot_threshold_graph(y_test, y_pred_proba)
+    CalibrationDisplay.from_predictions(y_test, y_pred_proba)
+    __plot_class_overlap_graph(y_test, y_pred_proba)
+
+def __plot_threshold_graph(y_test, y_pred_proba):
     thresholds = np.linspace(0, 1, 100)
     accuracies = [accuracy_score(y_test, (y_pred_proba >= t).astype(int)) for t in thresholds]
     best_idx = np.argmax(accuracies)
@@ -101,8 +91,7 @@ def plot_threshold_graph(y_test, y_pred_proba):
     print(f"Default threshold (0.5) accuracy: {accuracies[50]:.3f}")
     print(f"Best threshold ({best_threshold:.3f}) accuracy: {best_accuracy:.3f}")
 
-def plot_class_overlap_graph(y_test, y_pred_proba):
-    y_pred_proba = y_pred_proba[:, 1]
+def __plot_class_overlap_graph(y_test, y_pred_proba):
     thresholds = np.linspace(0, 1, 100)
     accuracies = [accuracy_score(y_test, (y_pred_proba >= t).astype(int)) for t in thresholds]
     optimal_threshold = thresholds[np.argmax(accuracies)]
@@ -116,20 +105,6 @@ def plot_class_overlap_graph(y_test, y_pred_proba):
     plt.xlabel('Predicted Probability')
     plt.ylabel('Density')
     plt.title('Class Overlap and Asymmetric Distributions')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.show()
-
-def plot_calibration_graph(y_test, y_pred_proba):
-    y_pred_proba = y_pred_proba[:, 1]
-    prob_true, prob_pred = calibration_curve(y_test, y_pred_proba, n_bins=5)
-
-    plt.figure(figsize=(10, 4))
-    plt.plot(prob_pred, prob_true, 's-', label='Model calibration')
-    plt.plot([0, 1], [0, 1], '--', label='Perfectly calibrated')
-    plt.xlabel('Predicted Probability')
-    plt.ylabel('True Probability')
-    plt.title('Curve ABOVE Diagonal\n"Too cautious, too pessimistic"')
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.show()

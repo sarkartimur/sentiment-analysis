@@ -49,19 +49,11 @@ y_pred_proba = model.predict_proba(test_embeddings_reduced)
 # y_pred = (y_pred_proba[:, 1] >= threshold).astype(int)
 
 metrics.compute_metrics(y_test, y_pred, y_pred_proba)
+metrics.plot_graphs(y_test, y_pred, y_pred_proba)
 
 incorrect_idices = util.analyze_errors(y_test.values, y_pred, X_test.values)
 
-# metrics.plot_roc_auc(y_test, y_pred_proba)
 
-# metrics.plot_threshold_graph(y_test, y_pred_proba)
-
-# metrics.plot_class_overlap_graph(y_test, y_pred_proba)
-
-# metrics.plot_calibration_graph(y_test, y_pred_proba)
-
-
-# todo make bert singleton, move these to util
 def predict_arr(texts):
     e = bert.get_bert_embeddings(texts=texts, pooling_strategy=POOLING_STRATEGY)
     er = pca_reducer.transform(e)

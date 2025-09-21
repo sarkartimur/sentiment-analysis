@@ -1,4 +1,4 @@
-name: machinelearning
+name: sentiment-analysis
 channels:
   - conda-forge
   - defaults
