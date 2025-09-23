@@ -68,29 +68,16 @@ def svc_cv(X_train, y_train):
     
     return grid_search.best_estimator_
 
-def train_svc(X_train, y_train, X_cal, y_cal):
+def train_svc(X_train, y_train):
     model = SVC(random_state=RANDOM_SEED, probability=True, C=60, gamma=0.001)
-    
-    # # Stage 1: Sigmoid calibration
-    # model = CalibratedClassifierCV(model, method='isotonic', cv=5)
-    # model.fit(X_train, y_train)
-
-    # # Stage 2: Isotonic on top of sigmoid
-    # model = CalibratedClassifierCV(model, method='sigmoid', cv=5)
-    
-    # iso = IsotonicRegression(out_of_bounds='clip')
-
-    # More aggressive isotonic - allows more extreme adjustments
-    iso = IsotonicRegression(out_of_bounds='clip')
-                                    # increasing=True,  # Force monotonic
-                                    # y_min=0.0, y_max=1.0)  # Full range
-
+    model = CalibratedClassifierCV(
+        model,
+        method='sigmoid', 
+        cv=5,
+        n_jobs=-1
+    )
     model.fit(X_train, y_train)
-
-    X_cal = model.predict_proba(X_cal)[:, 1]
-    iso.fit(X_cal, y_cal)
-    
-    return model, iso
+    return model
 
 def train_logistic_regression(X_train, y_train):
     model = CalibratedClassifierCV(
