@@ -19,16 +19,15 @@ class BERTContainer:
         for i in range(0, len(texts), batch_size):
             batch_texts = texts[i:i+batch_size]
             
-            # Tokenize the batch
             inputs = self.tokenizer(
                 batch_texts,
-                padding=True,
+                # !IMPORTANT WHEN PROCESSING IN BATCHES DURING TRAIN/TEST AND PASSING SINGLE TEXTS DURING INFERENCE!
+                padding='max_length',
                 truncation=True,
                 max_length=max_length,
                 return_tensors='pt'
             ).to(self.device)
             
-            # Get embeddings
             with torch.no_grad():
                 last_hidden = self.bert_model(**inputs).last_hidden_state
                 if pooling_strategy == 'cls':
@@ -73,7 +72,7 @@ class BERTContainer:
             if (i // batch_size) % 10 == 0:
                 print(f"Processed {i}/{len(texts)} texts")
         
-        self.bert_model.eval()  # Set back to evaluation mode
+        self.bert_model.eval()
         return np.vstack(embeddings)
 
     def enhance_embeddings(self, embeddings):
