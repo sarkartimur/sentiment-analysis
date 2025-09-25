@@ -10,13 +10,18 @@ class SemanticDeduplicator:
         self.model = SentenceTransformer(model_name)
 
     def clustering_deduplication(self, df, threshold=0.8):
+        if threshold >= 1.0:
+            raise ValueError("Threshold must be less than 1.0. For near-exact duplicates, use 0.999 or similar.")
+
         texts = df.tolist()
         embeddings = self.model.encode(texts, show_progress_bar=True)
         
         clusters = util.community_detection(embeddings, min_community_size=1, threshold=threshold)
         
         cluster_sizes = [len(cluster) for cluster in clusters]
-        print(f"\nCluster sizes: {cluster_sizes}")
+        clustered_indices = set(idx for cluster in clusters for idx in cluster)
+        print(f"\nUnclustered records: {len(df) - len(clustered_indices)}")
+        print(f"Cluster sizes: {cluster_sizes}")
         print(f"Max cluster size: {max(cluster_sizes)}")
         print(f"Min cluster size: {min(cluster_sizes)}")
 
