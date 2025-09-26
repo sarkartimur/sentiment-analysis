@@ -50,8 +50,6 @@ class DataLoader:
         if imbalance_ratio is not None:
             X_train, y_train = self.__add_imbalance(X_train, y_train, imbalance_ratio)
 
-        print('\n')
-
         return (
             (X_train, y_train, X_test, y_test, X_cal, y_cal)
             if calibration_ratio is not None else

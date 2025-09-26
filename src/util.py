@@ -3,7 +3,6 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.calibration import CalibratedClassifierCV
-from sklearn.isotonic import IsotonicRegression
 import xgboost as xgb
 from sklearn.decomposition import PCA
 from umap import UMAP
@@ -151,16 +150,19 @@ def lime_explain(txt, predict_method):
     # plt.show()
     exp.show_in_notebook()
 
-def analyze_errors(y_test, y_pred, test_texts):
-    """Analyze where the model is making errors"""
-    incorrect_indices = np.where(y_pred != y_test)[0]
+def analyze_errors(X_test, y_test, y_pred, y_pred_proba):
+    confident_false_positives = X_test[(y_test == 0) & (y_pred == 1) & (y_pred_proba > 0.9)]
+    confident_false_negatives = X_test[(y_test == 1) & (y_pred == 0) & (y_pred_proba < 0.1)]
     
-    # Look at some misclassified examples
-    for i in incorrect_indices[:10]:
-        print(f"\nIndex: {i}, True label: {y_test[i]}, Predicted: {y_pred[i]}")
-        print(f"Text: {test_texts[i][:200]}...")
+    print("\n")
+    for i, fn in confident_false_positives[:10].items():
+        print(f"Confident false positive at index {i}: {fn}")
+
+    print("\n")
+    for i, fn in confident_false_negatives[:10].items():
+        print(f"Confident false negative at index {i}: {fn}")
     
-    return incorrect_indices
+    return confident_false_positives, confident_false_negatives
 
 def serialize(filename, model):
     with open(filename, 'wb') as f:
