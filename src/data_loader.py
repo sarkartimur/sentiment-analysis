@@ -12,7 +12,7 @@ class DataLoader:
     __MINORITY_CLASS = 1
 
     def load_data_dict(self) -> DatasetDict:
-        X_train, y_train, X_test, y_test = self.load_data()
+        X_train, y_train, X_test, y_test, *opt = self.load_data()
         return DatasetDict({
             'train': Dataset.from_dict({'features': X_train, 'labels': y_train}),
             'test': Dataset.from_dict({'features': X_test, 'labels': y_test})

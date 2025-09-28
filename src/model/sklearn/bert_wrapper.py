@@ -5,7 +5,7 @@ from transformers import AutoTokenizer, AutoModel
 from constants import BERT_MODEL, BERT_MAX_TOKENS
 
 
-class BERTContainer:
+class BERTWrapper:
     def __init__(self):
         self.tokenizer = AutoTokenizer.from_pretrained(BERT_MODEL)
         self.bert_model = AutoModel.from_pretrained(BERT_MODEL)

@@ -44,6 +44,7 @@ class Classifier(Protocol):
         pass
 
 
+# todo add method fromfile
 class ModelContainer(ABC):
     settings: ModelSettings
     model: Classifier

@@ -1,8 +1,8 @@
 import numpy as np
 from typing import Optional, Tuple, List
-from model.protocols import Classifier, ModelContainer, ModelSettings, TrainTestSplit
+from model.protocols import Classifier, ModelContainer, ModelSettings
 from data_loader import DataLoader
-from bert_container import BERTContainer
+from model.sklearn.bert_wrapper import BERTWrapper
 from sklearn.decomposition import PCA
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 import metrics
@@ -12,7 +12,7 @@ import time
 class SklearnModelContainer(ModelContainer):
     reducer: Optional[PCA] = None
 
-    def __init__(self, loader: DataLoader, model: Classifier, bert: BERTContainer, settings = ModelSettings()):
+    def __init__(self, loader: DataLoader, model: Classifier, bert: BERTWrapper, settings = ModelSettings()):
         self.loader = loader
         self.model = model
         self.bert = bert
