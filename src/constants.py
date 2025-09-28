@@ -2,6 +2,7 @@
 
 RANDOM_SEED = 42
 BERT_MODEL = 'bert-base-uncased'
+BERT_MAX_TOKENS = 512
 BERT_DEDUPLICATOR_MODEL = 'paraphrase-multilingual-MiniLM-L12-v2'
 DATASET_NAME = 'imdb'
 DATASET_TEXT_COLUMN = 'text'

@@ -2,7 +2,7 @@ import pandas as pd
 from constants import DATASET_NAME, SAMPLE_SIZE, TEST_RATIO
 from datasets import load_dataset
 from datasets import DatasetDict, Dataset
-from protocols import TrainTestSplit
+from model.protocols import TrainTestSplit
 from sklearn.model_selection import train_test_split
 from util import RANDOM_SEED
 

@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from typing import List
 from transformers import AutoTokenizer, AutoModel
-from constants import BERT_MODEL
+from constants import BERT_MODEL, BERT_MAX_TOKENS
 
 
 class BERTContainer:
@@ -14,7 +14,7 @@ class BERTContainer:
         self.bert_model.eval()
 
 
-    def get_bert_embeddings(self, texts: List[str], batch_size=16, max_length=512, pooling_strategy='cls') -> np.ndarray:
+    def get_bert_embeddings(self, texts: List[str], pooling_strategy: str, batch_size=16) -> np.ndarray:
         print(f"Extracting embeddings using {pooling_strategy}")
         embeddings = []
         
@@ -26,7 +26,7 @@ class BERTContainer:
                 # !IMPORTANT WHEN PROCESSING IN BATCHES DURING TRAIN/TEST AND PASSING SINGLE TEXTS DURING INFERENCE!
                 padding='max_length',
                 truncation=True,
-                max_length=max_length,
+                max_length=BERT_MAX_TOKENS,
                 return_tensors='pt'
             ).to(self.device)
             
