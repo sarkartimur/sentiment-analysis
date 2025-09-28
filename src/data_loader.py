@@ -1,6 +1,8 @@
 import pandas as pd
+from constants import DATASET_NAME, SAMPLE_SIZE, TEST_RATIO
 from datasets import load_dataset
 from datasets import DatasetDict, Dataset
+from protocols import TrainTestSplit
 from sklearn.model_selection import train_test_split
 from util import RANDOM_SEED
 
@@ -9,19 +11,16 @@ class DataLoader:
 
     __MINORITY_CLASS = 1
 
-    def __init__(self, dataset_name='imdb'):
-        self.__dataset_name = dataset_name
-
-    def load_data_dict(self, sample_size=2000, test_ratio=0.25):
-        X_train, y_train, X_test, y_test = self.load_data(sample_size, test_ratio)
+    def load_data_dict(self) -> DatasetDict:
+        X_train, y_train, X_test, y_test = self.load_data()
         return DatasetDict({
             'train': Dataset.from_dict({'features': X_train, 'labels': y_train}),
             'test': Dataset.from_dict({'features': X_test, 'labels': y_test})
         })
 
-    def load_data(self, sample_size=3000, test_ratio=0.4, calibration_ratio=None, imbalance_ratio=None):
-        print(f"Loading {self.__dataset_name} dataset...")
-        dataset = load_dataset(self.__dataset_name)
+    def load_data(self, calibration_ratio=None, imbalance_ratio=None) -> TrainTestSplit:
+        print(f"Loading {DATASET_NAME} dataset...")
+        dataset = load_dataset(DATASET_NAME)
         df = pd.concat([dataset['train'].to_pandas(), dataset['test'].to_pandas()], ignore_index=True)
 
         print(df.head())
@@ -31,8 +30,8 @@ class DataLoader:
         
         X_train, X_test, y_train, y_test = train_test_split(
             X, y,
-            train_size=int(sample_size * (1 - test_ratio)),
-            test_size=int(sample_size * test_ratio),
+            train_size=int(SAMPLE_SIZE * (1 - TEST_RATIO)),
+            test_size=int(SAMPLE_SIZE * TEST_RATIO),
             stratify=y,
             random_state=RANDOM_SEED
         )
@@ -51,9 +50,9 @@ class DataLoader:
             X_train, y_train = self.__add_imbalance(X_train, y_train, imbalance_ratio)
 
         return (
-            (X_train, y_train, X_test, y_test, X_cal, y_cal)
+            TrainTestSplit(X_train, y_train, X_test, y_test, X_cal, y_cal)
             if calibration_ratio is not None else
-            (X_train, y_train, X_test, y_test)
+            TrainTestSplit(X_train, y_train, X_test, y_test)
         )
 
     def __add_imbalance(self, X_train, y_train, imbalance_ratio):

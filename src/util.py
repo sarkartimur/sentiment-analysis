@@ -1,4 +1,5 @@
 import numpy as np
+from constants import RANDOM_SEED
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
@@ -12,10 +13,7 @@ from lime.lime_text import LimeTextExplainer
 import pickle
 
 
-RANDOM_SEED = 42
-
-
-def train_xgboost(X_train, y_train):
+def xgboost_cv():
     param_grid = {
         'max_depth': [2, 3, 6, 9, 12],
         'learning_rate': [0.01, 0.05, 0.1, 0.2],
@@ -37,14 +35,9 @@ def train_xgboost(X_train, y_train):
         cv=5, verbose=2, random_state=RANDOM_SEED, n_jobs=-1
     )
     
-    random_search.fit(X_train, y_train)
-    
-    print("Best parameters:", random_search.best_params_)
-    print("Best cross-validation score:", random_search.best_score_)
-    
-    return random_search.best_estimator_
+    return random_search
 
-def svc_cv(X_train, y_train):
+def svc_cv():
     # best params: C = 100, gamma = 0.01
     param_grid = [
     {
@@ -60,14 +53,10 @@ def svc_cv(X_train, y_train):
         scoring='roc_auc',
         verbose=3
     )
-    grid_search.fit(X_train, y_train)
-
-    print("Best parameters:", grid_search.best_params_)
-    print("Best cross-validation score:", grid_search.best_score_)
     
-    return grid_search.best_estimator_
+    return grid_search
 
-def train_svc(X_train, y_train):
+def svc():
     model = SVC(random_state=RANDOM_SEED, probability=True, C=60, gamma=0.001)
     model = CalibratedClassifierCV(
         model,
@@ -75,21 +64,18 @@ def train_svc(X_train, y_train):
         cv=5,
         n_jobs=-1
     )
-    model.fit(X_train, y_train)
     return model
 
-def train_logistic_regression(X_train, y_train):
+def logistic_regression():
     model = CalibratedClassifierCV(
         LogisticRegression(random_state=RANDOM_SEED),
         method='sigmoid', 
         cv=5,
         n_jobs=-1
     )
-    # model = LogisticRegression(random_state=RANDOM_SEED)
-    model.fit(X_train, y_train)
     return model
 
-def choose_model(X_train, y_train):
+def choose_model():
     pipeline = ImbPipeline([
         ('classifier', LogisticRegression(random_state=RANDOM_SEED))
     ])
@@ -119,24 +105,8 @@ def choose_model(X_train, y_train):
         n_jobs=-1,
         return_train_score=True
     )
-    grid_search.fit(X_train, y_train)
-
-    print("Best parameters:", grid_search.best_params_)
-    print("Best cross-validation score:", grid_search.best_score_)
     
-    return grid_search.best_estimator_
-
-def reduce_dimensions(data, n_components=50, method='pca'):
-    if method == 'pca':
-        reducer = PCA(n_components=n_components)
-    elif method == 'umap':
-        reducer = UMAP(n_components=n_components, random_state=RANDOM_SEED)
-    else:
-        raise ValueError("Method must be 'pca' or 'umap'")
-    
-    print(f"Reducing dimensions using {method}")
-    reduced = reducer.fit_transform(data)
-    return reduced, reducer
+    return grid_search
 
 def lime_explain(txt, predict_method):
     explainer = LimeTextExplainer(class_names=['Negative', 'Positive'])
@@ -149,20 +119,6 @@ def lime_explain(txt, predict_method):
     # exp.as_pyplot_figure()
     # plt.show()
     exp.show_in_notebook()
-
-def analyze_errors(X_test, y_test, y_pred, y_pred_proba):
-    confident_false_positives = X_test[(y_test == 0) & (y_pred == 1) & (y_pred_proba > 0.9)]
-    confident_false_negatives = X_test[(y_test == 1) & (y_pred == 0) & (y_pred_proba < 0.1)]
-    
-    print("\n")
-    for i, fn in confident_false_positives[:10].items():
-        print(f"Confident false positive at index {i}: {fn}")
-
-    print("\n")
-    for i, fn in confident_false_negatives[:10].items():
-        print(f"Confident false negative at index {i}: {fn}")
-    
-    return confident_false_positives, confident_false_negatives
 
 def serialize(filename, model):
     with open(filename, 'wb') as f:

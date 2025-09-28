@@ -1,18 +1,20 @@
 import torch
-from transformers import AutoTokenizer, AutoModel
 import numpy as np
+from typing import List
+from transformers import AutoTokenizer, AutoModel
+from constants import BERT_MODEL
 
 
 class BERTContainer:
-    def __init__(self, model_name='bert-base-uncased'):
-        self.model_name = model_name
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.bert_model = AutoModel.from_pretrained(model_name)
+    def __init__(self):
+        self.tokenizer = AutoTokenizer.from_pretrained(BERT_MODEL)
+        self.bert_model = AutoModel.from_pretrained(BERT_MODEL)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.bert_model.to(self.device)
         self.bert_model.eval()
-        
-    def get_bert_embeddings(self, texts, batch_size=16, max_length=512, pooling_strategy='cls'):
+
+
+    def get_bert_embeddings(self, texts: List[str], batch_size=16, max_length=512, pooling_strategy='cls') -> np.ndarray:
         print(f"Extracting embeddings using {pooling_strategy}")
         embeddings = []
         
@@ -48,31 +50,6 @@ class BERTContainer:
             if (i // batch_size) % 10 == 0:
                 print(f"Processed {i}/{len(texts)} texts")
         
-        return np.vstack(embeddings)
-    
-    def get_gradient_embeddings(self, texts, batch_size=16):
-        """Get embeddings using gradient information (more nuanced)"""
-        self.bert_model.train()  # Set to training mode for gradients
-        embeddings = []
-        
-        for i in range(0, len(texts), batch_size):
-            batch_texts = texts[i:i+batch_size]
-            
-            inputs = self.tokenizer(
-                batch_texts, padding=True, truncation=True, 
-                max_length=512, return_tensors='pt'
-            ).to(self.device)
-            
-            # Forward pass with gradient tracking
-            outputs = self.bert_model(**inputs)
-            # Use mean pooling of last hidden state
-            batch_embeddings = outputs.last_hidden_state.mean(dim=1).cpu().detach().numpy()
-            embeddings.append(batch_embeddings)
-
-            if (i // batch_size) % 10 == 0:
-                print(f"Processed {i}/{len(texts)} texts")
-        
-        self.bert_model.eval()
         return np.vstack(embeddings)
 
     def enhance_embeddings(self, embeddings):

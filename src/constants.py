@@ -1,0 +1,10 @@
+
+
+RANDOM_SEED = 42
+BERT_MODEL = 'bert-base-uncased'
+BERT_DEDUPLICATOR_MODEL = 'paraphrase-multilingual-MiniLM-L12-v2'
+DATASET_NAME = 'imdb'
+DATASET_TEXT_COLUMN = 'text'
+DATASET_CLASS_COLUMN = 'label'
+SAMPLE_SIZE = 4000
+TEST_RATIO = 0.2

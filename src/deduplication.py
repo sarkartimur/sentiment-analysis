@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+from typing import Tuple
+from constants import BERT_DEDUPLICATOR_MODEL, DATASET_TEXT_COLUMN, DATASET_CLASS_COLUMN
 from sentence_transformers import SentenceTransformer, util
 
 
@@ -9,16 +11,14 @@ CLUSTER1_PROPORTION_COL = 'cluster_class_1_proportion'
 
 class SemanticDeduplicator:
     
-    def __init__(self, model_name='paraphrase-multilingual-MiniLM-L12-v2', text_column='text', class_column='label'):
-        self.model = SentenceTransformer(model_name)
-        self.text_column = text_column
-        self.class_column = class_column
+    def __init__(self):
+        self.model = SentenceTransformer(BERT_DEDUPLICATOR_MODEL)
 
-    def clustering_deduplication(self, df, threshold=0.8):
+    def clustering_deduplication(self, df: pd.DataFrame, threshold=0.8) -> Tuple[pd.DataFrame, pd.DataFrame]:
         if threshold >= 1.0:
             raise ValueError("Threshold must be less than 1.0. For near-exact duplicates, use 0.999 or similar.")
 
-        texts = df[self.text_column].tolist()
+        texts = df[DATASET_TEXT_COLUMN].tolist()
         embeddings = self.model.encode(texts, show_progress_bar=True)
         
         clusters = util.community_detection(embeddings, min_community_size=1, threshold=threshold)
@@ -42,16 +42,16 @@ class SemanticDeduplicator:
         cluster_info = []
 
         def add_unique_record(class_indices, class_1_proportion, cluster_id):
-            rep_idx = max(class_indices, key=lambda idx: len(df.iloc[idx][self.text_column]))
+            rep_idx = max(class_indices, key=lambda idx: len(df.iloc[idx][DATASET_TEXT_COLUMN]))
             rep_row = df.iloc[rep_idx].copy()
             rep_row[CLUSTER1_PROPORTION_COL] = class_1_proportion
             rep_row[CLUSTER_ID_COL] = cluster_id
             unique_data.append(rep_row)
         
         for cluster_id, cluster in enumerate(clusters):
-            class_0_indices = [idx for idx in cluster if df.iloc[idx][self.class_column] == 0]
-            class_1_indices = [idx for idx in cluster if df.iloc[idx][self.class_column] == 1]
-            class_1_proportion = len(class_1_indices) / len(cluster)
+            class_0_indices = [idx for idx in cluster if df.iloc[idx][DATASET_CLASS_COLUMN] == 0]
+            class_1_indices = [idx for idx in cluster if df.iloc[idx][DATASET_CLASS_COLUMN] == 1]
+            class_1_proportion = len(class_1_indices) / len(cluster) if len(cluster) > 1 else 0.5
             
             if not class_0_indices:  # Only class 1
                 add_unique_record(class_1_indices, class_1_proportion, cluster_id)
