@@ -1,5 +1,5 @@
 import pandas as pd
-from constants import DATASET_NAME, SAMPLE_SIZE, TEST_RATIO
+from constants import DATASET_NAME, SAMPLE_SIZE, TEST_RATIO, IMBALANCE_RATIO
 from datasets import load_dataset
 from datasets import DatasetDict, Dataset
 from model.protocols import TrainTestSplit
@@ -11,14 +11,18 @@ class DataLoader:
 
     __MINORITY_CLASS = 1
 
-    def load_data_dict(self) -> DatasetDict:
-        X_train, y_train, X_test, y_test, *opt = self.load_data()
+    def load_data_dict(self, calibration_ratio) -> DatasetDict:
+        X_train, y_train, X_test, y_test, X_cal, y_cal = self.load_data(calibration_ratio)
         return DatasetDict({
+            'train': Dataset.from_dict({'features': X_train, 'labels': y_train}),
+            'test': Dataset.from_dict({'features': X_test, 'labels': y_test}),
+            'cal': Dataset.from_dict({'features': X_cal, 'labels': y_cal})
+        }) if calibration_ratio is not None else DatasetDict({
             'train': Dataset.from_dict({'features': X_train, 'labels': y_train}),
             'test': Dataset.from_dict({'features': X_test, 'labels': y_test})
         })
 
-    def load_data(self, calibration_ratio=None, imbalance_ratio=None) -> TrainTestSplit:
+    def load_data(self, calibration_ratio=None) -> TrainTestSplit:
         print(f"Loading {DATASET_NAME} dataset...")
         dataset = load_dataset(DATASET_NAME)
         df = pd.concat([dataset['train'].to_pandas(), dataset['test'].to_pandas()], ignore_index=True)
@@ -46,8 +50,8 @@ class DataLoader:
         if calibration_ratio is not None:
             print(f"Calibration set - Positive: {sum(y_cal)}, Negative: {len(y_cal) - sum(y_cal)}")
 
-        if imbalance_ratio is not None:
-            X_train, y_train = self.__add_imbalance(X_train, y_train, imbalance_ratio)
+        if IMBALANCE_RATIO is not None:
+            X_train, y_train = self.__add_imbalance(X_train, y_train, IMBALANCE_RATIO)
 
         return (
             TrainTestSplit(X_train, y_train, X_test, y_test, X_cal, y_cal)

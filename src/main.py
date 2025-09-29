@@ -20,6 +20,7 @@ np.random.seed(RANDOM_SEED)
 
 loader = dl.DataLoader()
 MODEL_PATH = "F:\\IdeaProjects\\pretrained\\bert_imdb_sentiment_reduced_5l"
-model = BERTModelContainer(loader=loader, model=BERTClassifier(loader=loader))
+cls = BERTClassifier(loader)
+model = BERTModelContainer(loader=loader, model=cls, calibration_method="sigmoid")
 model.train()
 model.test()

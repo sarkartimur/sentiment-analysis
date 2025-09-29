@@ -53,7 +53,7 @@ def __calculate_confidence(y_pred, y_pred_proba, y_test):
     avg_pred_confidence(0, 1, 'False Negatives')
 
 def plot_graphs(y_test, y_pred, y_pred_proba):
-    ConfusionMatrixDisplay.from_predictions(y_test, y_pred, normalize='all')
+    ConfusionMatrixDisplay.from_predictions(y_test, y_pred)
     RocCurveDisplay.from_predictions(y_test, y_pred_proba)
     PrecisionRecallDisplay.from_predictions(y_test, y_pred_proba)
     __plot_threshold_graph(y_test, y_pred_proba)
