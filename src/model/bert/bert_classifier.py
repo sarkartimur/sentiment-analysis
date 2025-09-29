@@ -1,14 +1,24 @@
+from dataclasses import dataclass
 import torch
-from torch import nn
 import numpy as np
 from typing import List, Optional
 from constants import BERT_MAX_TOKENS, BERT_MODEL, IMBALANCE_RATIO
 from model.protocols import Classifier
-from transformers import BertForSequenceClassification, BertTokenizer, TrainingArguments, Trainer
-from data_loader import DataLoader
+from transformers import AutoConfig, BertForSequenceClassification, BertTokenizer, TrainingArguments, Trainer
 from datasets import DatasetDict
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-from sklearn.utils.class_weight import compute_class_weight
+
+
+@dataclass
+class BertClassifierSettings:
+    num_train_epochs = 3
+    learning_rate = 2e-5
+    weight_decay = 0.05
+    # Note: for balanced data use different metric
+    metric_for_best_model = "eval_class_1_f1"
+    label_smoothing_factor = 0.1
+    n_layer_unfreeze = 3
+    dropout_prob = 0.25
 
 
 class BERTClassifier(Classifier):
@@ -16,10 +26,10 @@ class BERTClassifier(Classifier):
     model: BertForSequenceClassification
     trainer: Optional[Trainer]
 
-    def __init__(self, n_layer_unfreeze=3):
+    def __init__(self, settings=BertClassifierSettings()):
         self.tokenizer = BertTokenizer.from_pretrained(BERT_MODEL)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.n_layer_unfreeze = n_layer_unfreeze
+        self.settings = settings
 
 
     def train(self, data: DatasetDict):
@@ -33,46 +43,6 @@ class BERTClassifier(Classifier):
 
         tokenized_datasets = data.map(tokenize_function, batched=True)
         tokenized_datasets.set_format("torch", columns=["input_ids", "attention_mask", "labels"])
-    
-        training_args = TrainingArguments(
-            num_train_epochs=5,
-            per_device_train_batch_size=8,
-            per_device_eval_batch_size=8,
-            eval_strategy="epoch",
-            logging_dir="./logs",
-            logging_steps=100,
-            learning_rate=1e-5,
-            weight_decay=0.01,
-            # Note: for balanced data use different metric
-            metric_for_best_model="eval_class_1_f1",
-            label_smoothing_factor=0.1,
-            save_strategy="epoch",
-            load_best_model_at_end=True
-        )
-
-        # Param search
-        # def optuna_hp_space(trial):
-        #     return {
-        #         "learning_rate": trial.suggest_float("learning_rate", 1e-5, 5e-5, log=True),
-        #         "num_train_epochs": trial.suggest_int("num_train_epochs", 3, 5),
-        #         "weight_decay": trial.suggest_float("weight_decay", 0.01, 0.1),
-        #     }
-
-        # trainer = Trainer(
-        #     model=None,  # Important: set to None when using model_init
-        #     args=training_args,
-        #     train_dataset=tokenized_datasets["train"],
-        #     eval_dataset=tokenized_datasets["test"],
-        #     compute_metrics=compute_metrics,
-        #     model_init=model_init
-        # )
-
-        # best_run = trainer.hyperparameter_search(
-        #     direction="minimize", # Minimize eval_loss
-        #     hp_space=optuna_hp_space,
-        #     n_trials=20
-        # )
-        # print(best_run)
 
         def compute_metrics(p):
             predictions, labels = p
@@ -99,7 +69,7 @@ class BERTClassifier(Classifier):
 
         self.trainer = Trainer(
             model=self.model,
-            args=training_args,
+            args=self.__build_training_args(),
             train_dataset=tokenized_datasets["train"],
             eval_dataset=tokenized_datasets["test"],
             compute_metrics=compute_metrics
@@ -144,10 +114,52 @@ class BERTClassifier(Classifier):
         return np.argmax(proba, axis=1)
     
 
+    # todo
+    def __param_search(self, tokenized_datasets, compute_metrics):
+        def optuna_hp_space(trial):
+            return {
+                "learning_rate": trial.suggest_float("learning_rate", 1e-5, 5e-5, log=True),
+                "num_train_epochs": trial.suggest_int("num_train_epochs", 3, 5),
+                "weight_decay": trial.suggest_float("weight_decay", 0.01, 0.1),
+            }
+
+        self.trainer = Trainer(
+            model=self.model,
+            args=self.__build_training_args(),
+            train_dataset=tokenized_datasets["train"],
+            eval_dataset=tokenized_datasets["test"],
+            compute_metrics=compute_metrics
+        )
+
+        best_run = self.trainer.hyperparameter_search(
+            direction="minimize", # Minimize eval_loss
+            hp_space=optuna_hp_space,
+            n_trials=20
+        )
+        print(best_run)
+
+    def __build_training_args(self):
+        return TrainingArguments(
+            num_train_epochs=self.settings.num_train_epochs,
+            learning_rate=self.settings.learning_rate,
+            weight_decay=self.settings.weight_decay,
+            metric_for_best_model=self.settings.metric_for_best_model,
+            label_smoothing_factor=self.settings.label_smoothing_factor,
+            per_device_train_batch_size=8,
+            per_device_eval_batch_size=8,
+            eval_strategy="epoch",
+            save_strategy="epoch",
+            load_best_model_at_end=True
+        )
+
     def __model_init(self):
+        config = AutoConfig.from_pretrained(BERT_MODEL)
+        config.hidden_dropout_prob = self.settings.dropout_prob
+        config.attention_probs_dropout_prob = self.settings.dropout_prob
+
         self.model = BertForSequenceClassification.from_pretrained(
             BERT_MODEL,
-            num_labels=2
+            config=config
         )
 
         # Freeze all base BERT parameters
@@ -155,7 +167,7 @@ class BERTClassifier(Classifier):
             param.requires_grad = False
 
         # Unfreeze the last n layers
-        for i in range(-self.n_layer_unfreeze, 0):
+        for i in range(-self.settings.n_layer_unfreeze, 0):
             for param in self.model.bert.encoder.layer[i].parameters():
                 param.requires_grad = True
 
