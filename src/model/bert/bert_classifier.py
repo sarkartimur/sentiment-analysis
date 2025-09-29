@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 from typing import List, Optional
-from constants import BERT_MAX_TOKENS, BERT_MODEL
+from constants import BERT_MAX_TOKENS, BERT_MODEL, IMBALANCE_RATIO
 from model.protocols import Classifier
 from transformers import BertForSequenceClassification, BertTokenizer, TrainingArguments, Trainer
 from data_loader import DataLoader
@@ -13,18 +13,16 @@ from sklearn.utils.class_weight import compute_class_weight
 
 class BERTClassifier(Classifier):
 
-    data: DatasetDict
     model: BertForSequenceClassification
     trainer: Optional[Trainer]
 
-    def __init__(self, loader: DataLoader):
-        self.loader = loader
+    def __init__(self, n_layer_unfreeze=3):
         self.tokenizer = BertTokenizer.from_pretrained(BERT_MODEL)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.n_layer_unfreeze = n_layer_unfreeze
 
 
-    def train(self, calibration_ratio, y_train):
-        self.data = self.loader.load_data_dict(calibration_ratio)
+    def train(self, data: DatasetDict):
         self.__model_init()
         
         def tokenize_function(examples):
@@ -33,18 +31,21 @@ class BERTClassifier(Classifier):
                             truncation=True,
                             max_length=512)
 
-        tokenized_datasets = self.data.map(tokenize_function, batched=True)
+        tokenized_datasets = data.map(tokenize_function, batched=True)
         tokenized_datasets.set_format("torch", columns=["input_ids", "attention_mask", "labels"])
     
         training_args = TrainingArguments(
-            num_train_epochs=3,
+            num_train_epochs=5,
             per_device_train_batch_size=8,
             per_device_eval_batch_size=8,
             eval_strategy="epoch",
             logging_dir="./logs",
             logging_steps=100,
-            learning_rate=2e-5,
+            learning_rate=1e-5,
             weight_decay=0.01,
+            # Note: for balanced data use different metric
+            metric_for_best_model="eval_class_1_f1",
+            label_smoothing_factor=0.1,
             save_strategy="epoch",
             load_best_model_at_end=True
         )
@@ -73,23 +74,38 @@ class BERTClassifier(Classifier):
         # )
         # print(best_run)
 
-        class_weights = compute_class_weight(
-             'balanced',
-             classes=np.unique(y_train),
-             y=y_train
-        )
-        class_weights = torch.tensor(class_weights, dtype=torch.float32)
-        
-        self.trainer = self.WeightedTrainer(
+        def compute_metrics(p):
+            predictions, labels = p
+            predictions = np.argmax(predictions, axis=1)
+            
+            accuracy = accuracy_score(labels, predictions)
+            precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted')
+            
+            precision_class, recall_class, f1_class, _ = precision_recall_fscore_support(labels, predictions, average=None)
+            metrics = {
+                "accuracy": accuracy,
+                "weighted_precision": precision,
+                "weighted_recall": recall,
+                "weighted_f1": f1,
+                "class_0_precision": precision_class[0],
+                "class_0_recall": recall_class[0],
+                "class_0_f1": f1_class[0],
+                "class_1_precision": precision_class[1],
+                "class_1_recall": recall_class[1],
+                "class_1_f1": f1_class[1],
+            }
+            
+            return metrics
+
+        self.trainer = Trainer(
             model=self.model,
             args=training_args,
-            class_weights=class_weights,
             train_dataset=tokenized_datasets["train"],
-            eval_dataset=tokenized_datasets["test"]
+            eval_dataset=tokenized_datasets["test"],
+            compute_metrics=compute_metrics
         )
 
         self.trainer.train()
-        self.trainer.evaluate()
 
         # todo
         # trainer.save_model("./imdb_sentiment_reduced")
@@ -139,8 +155,7 @@ class BERTClassifier(Classifier):
             param.requires_grad = False
 
         # Unfreeze the last n layers
-        n = 2
-        for i in range(-n, 0):
+        for i in range(-self.n_layer_unfreeze, 0):
             for param in self.model.bert.encoder.layer[i].parameters():
                 param.requires_grad = True
 
@@ -152,48 +167,3 @@ class BERTClassifier(Classifier):
         for name, param in self.model.named_parameters():
             if param.requires_grad:
                 print(name)
-
-    """Handles class imbalance"""
-    class WeightedTrainer(Trainer):
-        def __init__(self, class_weights=None, **kwargs):
-            kwargs['compute_metrics'] = self.__compute_metrics
-            super().__init__(**kwargs)
-            self.class_weights = class_weights
-        
-        def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
-            labels = inputs.get("labels")
-            outputs = model(**inputs)
-            logits = outputs.get("logits")
-            
-            if self.class_weights is not None:
-                loss_fct = nn.CrossEntropyLoss(
-                    weight=self.class_weights.to(logits.device)
-                )
-            else:
-                loss_fct = nn.CrossEntropyLoss()
-                
-            loss = loss_fct(logits, labels)
-            return (loss, outputs) if return_outputs else loss
-        
-        def __compute_metrics(self, p):
-            predictions, labels = p
-            predictions = np.argmax(predictions, axis=1)
-            
-            accuracy = accuracy_score(labels, predictions)
-            precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted')
-            
-            precision_class, recall_class, f1_class, _ = precision_recall_fscore_support(labels, predictions, average=None)
-            metrics = {
-                "accuracy": accuracy,
-                "weighted_precision": precision,
-                "weighted_recall": recall,
-                "weighted_f1": f1,
-                "class_0_precision": precision_class[0],
-                "class_0_recall": recall_class[0],
-                "class_0_f1": f1_class[0],
-                "class_1_precision": precision_class[1],
-                "class_1_recall": recall_class[1],
-                "class_1_f1": f1_class[1],
-            }
-            
-            return metrics

@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import data_loader as dl
+from data_loader import DataLoader
 from model.sklearn.bert_wrapper import BERTWrapper
 from constants import RANDOM_SEED
 from model.bert.bert_model_container import BERTClassifier, BERTModelContainer
@@ -18,9 +18,6 @@ np.random.seed(RANDOM_SEED)
 # model.train()
 # model.test()
 
-loader = dl.DataLoader()
-MODEL_PATH = "F:\\IdeaProjects\\pretrained\\bert_imdb_sentiment_reduced_5l"
-cls = BERTClassifier(loader)
-model = BERTModelContainer(loader=loader, model=cls, calibration_method="sigmoid")
+model = BERTModelContainer(loader=DataLoader(), model=BERTClassifier(), calibration_method="sigmoid")
 model.train()
 model.test()

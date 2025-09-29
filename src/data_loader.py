@@ -11,13 +11,9 @@ class DataLoader:
 
     __MINORITY_CLASS = 1
 
-    def load_data_dict(self, calibration_ratio) -> DatasetDict:
-        X_train, y_train, X_test, y_test, X_cal, y_cal = self.load_data(calibration_ratio)
+    def load_data_dict(self, data: TrainTestSplit) -> DatasetDict:
+        X_train, y_train, X_test, y_test, *opt = data
         return DatasetDict({
-            'train': Dataset.from_dict({'features': X_train, 'labels': y_train}),
-            'test': Dataset.from_dict({'features': X_test, 'labels': y_test}),
-            'cal': Dataset.from_dict({'features': X_cal, 'labels': y_cal})
-        }) if calibration_ratio is not None else DatasetDict({
             'train': Dataset.from_dict({'features': X_train, 'labels': y_train}),
             'test': Dataset.from_dict({'features': X_test, 'labels': y_test})
         })

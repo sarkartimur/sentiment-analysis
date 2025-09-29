@@ -1,15 +1,15 @@
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import LogisticRegression
-import torch
 import numpy as np
-from typing import List, Literal
+from typing import List, Literal, Optional
 from model.bert.bert_classifier import BERTClassifier
-from model.protocols import ModelContainer, ModelSettings
+from model.protocols import ModelContainer, ModelSettings, TrainTestSplit
 from data_loader import DataLoader
 
 
 class BERTModelContainer(ModelContainer):
     SUPPORTED_CALIBRATION_METHODS = ('sigmoid', 'isotonic', None)
+    data: Optional[TrainTestSplit]
 
     def __init__(self, loader: DataLoader, model: BERTClassifier, settings=ModelSettings(),
                 calibration_method: Literal['sigmoid', 'isotonic', None] = 'sigmoid'):
@@ -25,13 +25,14 @@ class BERTModelContainer(ModelContainer):
 
     def train(self) -> None:
         self.data = self.loader.load_data(self.calibration_ratio)
-        self.model.train(self.calibration_ratio, self.data.y_train)
+        dict = self.loader.load_data_dict(self.data)
+        self.model.train(dict)
         if self.calibration_method is not None:
             self.__init_calibrator()
 
     def test(self) -> None:
         if (self.data is None):
-            self.data = self.loader.load_data()
+            self.data = self.loader.load_data(self.calibration_ratio)
 
         y_pred_proba = self.predict_list(self.data.X_test)[:, 1]
         y_pred = (y_pred_proba >= self.settings.threshold).astype(int)
