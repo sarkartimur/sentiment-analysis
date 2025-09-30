@@ -31,4 +31,5 @@ dependencies:
     - sentence-transformers
     - jupyter
     - ipywidgets
+    - bitsandbytes
     # pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu129
