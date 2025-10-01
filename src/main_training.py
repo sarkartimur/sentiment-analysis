@@ -18,6 +18,6 @@ np.random.seed(RANDOM_SEED)
 # model.train()
 # model.test()
 
-model = BERTModelContainer(loader=DataLoader(), model=BERTClassifier(), calibration_method="sigmoid")
+model = BERTModelContainer(loader=DataLoader(), model=BERTClassifier(), calibration_method=None)
 model.train()
 model.test()
