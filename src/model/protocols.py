@@ -3,6 +3,8 @@ from dataclasses import dataclass, astuple
 from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
+from sklearn.utils import shuffle
+from constants import RANDOM_SEED
 import metrics
 
 
@@ -14,13 +16,46 @@ Target = Union[np.ndarray, pd.Series]
 class TrainTestSplit:
     X_train: Features
     y_train: Target
-    X_test: Features
-    y_test: Target
+    X_test: Optional[Features] = None
+    y_test: Optional[Target] = None
     X_cal: Optional[Features] = None
     y_cal: Optional[Target] = None
 
     def __iter__(self) -> Iterator:
         return iter(astuple(self))
+    
+    @staticmethod
+    def _concat(a: Optional[Features], b: Optional[Features]) -> Optional[Features]:
+        if a is None and b is None:
+            return None
+        return pd.concat([a, b], ignore_index=True)
+    
+    @staticmethod
+    def _shuffle(X: Optional[Features], y: Optional[Target]) -> Optional[Tuple[Features, Target]]:
+        if X is None and y is None:
+            return [None, None]
+        return shuffle(X, y, random_state=RANDOM_SEED)
+
+    @classmethod
+    def merge(cls: type['TrainTestSplit'], split1: 'TrainTestSplit', split2: 'TrainTestSplit') -> 'TrainTestSplit':
+        X_train_merged = cls._concat(split1.X_train, split2.X_train)
+        y_train_merged = cls._concat(split1.y_train, split2.y_train)
+
+        X_test_merged = cls._concat(split1.X_test, split2.X_test)
+        y_test_merged = cls._concat(split1.y_test, split2.y_test)
+
+        X_cal_merged = cls._concat(split1.X_cal, split2.X_cal)
+        y_cal_merged = cls._concat(split1.y_cal, split2.y_cal)
+
+        X_train_merged, y_train_merged = cls._shuffle(X_train_merged, y_train_merged)
+        X_test_merged, y_test_merged = cls._shuffle(X_test_merged, y_test_merged)
+        X_cal_merged, y_cal_merged = cls._shuffle(X_cal_merged, y_cal_merged)
+        
+        return cls(
+            X_train_merged, y_train_merged,
+            X_test_merged, y_test_merged,
+            X_cal_merged, y_cal_merged
+        )
 
 
 @dataclass(frozen=True)
