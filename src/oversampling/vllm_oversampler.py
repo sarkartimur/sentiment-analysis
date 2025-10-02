@@ -9,10 +9,8 @@ os.environ["VLLM_USE_V1"] = "0"
 
 class VllmOversampler:
     __MODEL = "/mnt/f/IdeaProjects/pretrained/Qwen3-8B-FP8"
-    # __MODEL = "/mnt/f/IdeaProjects/pretrained/Qwen3-4B-Thinking-2507-FP8"
-    
-    __PROMPT = (
-        "Перефразируй следующий шаблон сообщения whatsapp:\n{}\n\n"
+    __SYSTEM_PROMPT = (
+        "Твоя задача - производить переформулировки шаблонов сообщений whatsapp. "
         "Представь {} варианта(ов). "
         "ВАЖНО - каждый вариант должен быть на отдельной строке, в самих вариантах не используй переносы строк (даже если там есть списки), вывод не должен содержать ничего кроме вариантов, пронумеровывать варианты не надо. "
         "Варианты должны отличаться друг от друга, но семантика должна быть сохранена (семантически они должны быть похожи но не более чем на 90%). "
@@ -23,8 +21,9 @@ class VllmOversampler:
         "Сохраняй тон сообщения (если сообщение формальное то и вывод должен быть формальным). "
         "Длина текста должна быть сравнима с длиной оригинального сообщения, но не превышать 200 слов."
     )
-    # __PROMPT = "Перефразируй следующий шаблон сообщения whatsapp:\n{}.\n Сохраняй тон сообщения (если сообщение формальное то и вывод должен быть формальным). Не используй имена людей и названия компаний, ссылки заменяй на рандомные. Если в тексте есть эмодзи (например :flexed_biceps:) используй их в ответе, но в текстовом формате (например :flexed_biceps:). Ответ не должен содержать ничего кроме перефразированного текста и превышать 500 слов."
-
+    __USER_PROMPT = (
+        "Перефразируй следующий шаблон сообщения whatsapp:\n{}\n\n"
+    )
     __MAX_TOKENS = 2000
     __TEMPERATURE = 0.8
     __TOP_P = 0.9
@@ -48,8 +47,10 @@ class VllmOversampler:
         print(f"VllmOversampler initialized")
 
     def generate(self, template: str, num_answers: int) -> str:
-        prompt_content = self.__PROMPT.format(template, num_answers)
-        messages = [{"role": "user", "content": prompt_content}]
+        messages = [
+            {"role": "system", "content": self.__SYSTEM_PROMPT.format(num_answers)},
+            {"role": "user", "content": self.__USER_PROMPT.format(template)}
+        ]
         prompt = self.tokenizer.apply_chat_template(
             messages, 
             tokenize=False, 
