@@ -20,6 +20,7 @@ class BertClassifierSettings:
     label_smoothing_factor = 0.1
     n_layer_unfreeze = 3
     dropout_prob = 0.25
+    temperature_scale = 1.0
 
 
 class BERTClassifier(Classifier):
@@ -109,6 +110,10 @@ class BERTClassifier(Classifier):
             with torch.no_grad():
                 outputs = self.model(**inputs)
                 logits = outputs.logits
+
+                # Apply temperature scaling to the logits
+                logits = logits / self.settings.temperature_scale
+
                 probabilities = torch.softmax(logits, dim=-1).cpu().numpy()
                 result.append(probabilities)
             
