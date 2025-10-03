@@ -26,12 +26,14 @@ def xgboost_cv():
     
     xgb_model = xgb.XGBClassifier(
         objective='binary:logistic',
-        eval_metric='logloss',
+        eval_metric='aucpr',
+        # majority/minority
+        scale_pos_weight=10,
         random_state=RANDOM_SEED
     )
     
     random_search = RandomizedSearchCV(
-        xgb_model, param_grid, n_iter=25, scoring='accuracy',
+        xgb_model, param_grid, n_iter=25, scoring='average_precision',
         cv=5, verbose=2, random_state=RANDOM_SEED, n_jobs=-1
     )
     
