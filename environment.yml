@@ -32,5 +32,6 @@ dependencies:
     - jupyter
     - ipywidgets
     - bitsandbytes
+    - uncertainty-calibration
     # pip install torch torchvision --index-url https://download.pytorch.org/whl/cu129
     # pip install vllm

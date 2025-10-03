@@ -7,6 +7,7 @@ from model.protocols import Classifier
 from transformers import AutoConfig, BertForSequenceClassification, BertTokenizer, TrainingArguments, Trainer
 from datasets import DatasetDict
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+from calibration import get_ece
 
 
 @dataclass
@@ -45,14 +46,19 @@ class BERTClassifier(Classifier):
         tokenized_datasets.set_format("torch", columns=["input_ids", "attention_mask", "labels"])
 
         def compute_metrics(p):
-            predictions, labels = p
-            predictions = np.argmax(predictions, axis=1)
+            logits, labels = p
+            pred = np.argmax(logits, axis=1)
             
-            accuracy = accuracy_score(labels, predictions)
-            precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted')
+            accuracy = accuracy_score(labels, pred)
+            precision, recall, f1, _ = precision_recall_fscore_support(labels, pred, average='weighted')
             
-            precision_class, recall_class, f1_class, _ = precision_recall_fscore_support(labels, predictions, average=None)
-            metrics = {
+            precision_class, recall_class, f1_class, _ = precision_recall_fscore_support(labels, pred, average=None)
+
+            # Convert logits to probabilities using softmax
+            y_pred_proba = (np.exp(logits) / np.exp(logits).sum(axis=1, keepdims=True))[:, 1]
+            ece = get_ece(y_pred_proba, labels)
+
+            return {
                 "accuracy": accuracy,
                 "weighted_precision": precision,
                 "weighted_recall": recall,
@@ -63,9 +69,8 @@ class BERTClassifier(Classifier):
                 "class_1_precision": precision_class[1],
                 "class_1_recall": recall_class[1],
                 "class_1_f1": f1_class[1],
+                "ece": ece
             }
-            
-            return metrics
 
         self.trainer = Trainer(
             model=self.model,
