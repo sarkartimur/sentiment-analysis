@@ -1,16 +1,17 @@
-from typing import Protocol, Union, Optional, Iterator, Tuple, List
-from dataclasses import dataclass, astuple
+from typing import Protocol, Tuple, Union, Optional, Iterator, List
+from dataclasses import dataclass, astuple, fields
 from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 from sklearn.utils import shuffle
-from constants import RANDOM_SEED
-import metrics
+import torch
+from transformers import AutoModel, AutoTokenizer
+from model.constants import BERT_MAX_TOKENS, DATASET_TEXT_COLUMN, RANDOM_SEED
+import model.metrics as metrics
 
 
 Features = Union[np.ndarray, pd.DataFrame, pd.Series]
 Target = Union[np.ndarray, pd.Series]
-
 
 @dataclass(frozen=True)
 class TrainTestSplit:
@@ -58,7 +59,14 @@ class TrainTestSplit:
         )
 
 
-@dataclass(frozen=True)
+class ClassifierMixin(Protocol):
+    def predict(self, X: Features) -> Target:
+        pass
+
+    def predict_proba(self, X: Features) -> np.ndarray:
+        pass
+
+
 class ModelSettings:
     do_reduce = True
     do_output_metrics = True
@@ -67,22 +75,10 @@ class ModelSettings:
     num_dimensions = 150
     threshold = 0.5
 
-
-class Classifier(Protocol):
-    def fit(self, X_train: Features, y_train: Target) -> 'Classifier':
-        return self
-
-    def predict(self, X: Features) -> Target:
-        pass
-
-    def predict_proba(self, X: Features) -> np.ndarray:
-        pass
-
-
 # todo add method fromfile
-class ModelContainer(ABC):
+class ModelAgent(ABC):
     settings: ModelSettings
-    model: Classifier
+    model: ClassifierMixin
     data: Optional[TrainTestSplit] = None
     cfp: Optional[Features] = None
     cfn: Optional[Features] = None
@@ -96,16 +92,16 @@ class ModelContainer(ABC):
         pass
 
     @abstractmethod
-    def predict_list(self, X: List[str]) -> np.ndarray:
+    def predict_multiple(self, X: List[str]) -> np.ndarray:
         pass
 
     def predict(self, text: str) -> np.ndarray:
-        return self.predict_list([text])
+        return self.predict_multiple([text])
     
     def _analyze_errors(self, y_pred: np.ndarray, y_pred_proba: np.ndarray) -> None:
         if self.data is not None:
-            self.cfp = self.data.X_test[(self.data.y_test == 0) & (y_pred == 1) & (y_pred_proba > 0.9)]
-            self.cfn = self.data.X_test[(self.data.y_test == 1) & (y_pred == 0) & (y_pred_proba < 0.1)]
+            self.cfp = self.data.X_test[(self.data.y_test == 0) & (y_pred == 1) & (y_pred_proba > 0.9)][DATASET_TEXT_COLUMN]
+            self.cfn = self.data.X_test[(self.data.y_test == 1) & (y_pred == 0) & (y_pred_proba < 0.1)][DATASET_TEXT_COLUMN]
             
             print("\n")
             for i, fn in self.cfp[:10].items():
@@ -122,3 +118,37 @@ class ModelContainer(ABC):
 
         if self.settings.do_analyze_errors:
             self._analyze_errors(y_pred, y_pred_proba)
+
+
+class BERTWrapperMixin(ABC):
+    _model: AutoModel
+    _tokenizer: AutoTokenizer
+    _max_length = BERT_MAX_TOKENS
+
+    def __init__(self, model_path: str, local_model: bool, **kwargs):
+        super().__init__(**kwargs)
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._model_path = model_path
+        self._local_model = local_model
+
+    def get_tokens_with_offsets(self, text, return_offsets_mapping):
+        inputs = self._tokenizer(
+            text,
+            return_tensors='pt',
+            truncation=True,
+            max_length=self._max_length,
+            return_offsets_mapping=return_offsets_mapping
+        )
+        tokens = self._tokenizer.convert_ids_to_tokens(inputs['input_ids'][0])
+        
+        return inputs, tokens
+    
+    def get_attention_matrix(self, inputs):
+        self._model.eval()
+        with torch.no_grad():
+            inputs = {k: v.to(self._device) for k, v in inputs.items() if k != 'offset_mapping'}
+            outputs = self._model.bert(**inputs, output_attentions=True)
+            
+            attentions = torch.stack([att.squeeze(0) for att in outputs.attentions])
+            # Average attentions across layers then over heads
+            return attentions.mean(dim=0).mean(dim=0).cpu().numpy()

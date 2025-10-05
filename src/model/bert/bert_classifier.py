@@ -1,10 +1,12 @@
 from dataclasses import dataclass
+import os
+import pandas as pd
 import torch
 import numpy as np
-from typing import List, Optional
-from constants import BERT_MAX_TOKENS, BERT_MODEL, IMBALANCE_RATIO
-from model.protocols import Classifier
-from transformers import AutoConfig, BertForSequenceClassification, BertTokenizer, TrainingArguments, Trainer
+from typing import Optional
+from model.constants import BERT_MODEL
+from model.protocols import BERTWrapperMixin, ClassifierMixin
+from transformers import AutoConfig, AutoTokenizer, BertForSequenceClassification, DataCollatorWithPadding, TrainingArguments, Trainer
 from datasets import DatasetDict
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from calibration import get_ece
@@ -17,31 +19,43 @@ class BertClassifierSettings:
     weight_decay = 0.05
     # Note: for balanced data use different metric
     metric_for_best_model = "eval_class_1_f1"
+    greater_is_better = True
     label_smoothing_factor = 0.1
     n_layer_unfreeze = 3
     dropout_prob = 0.25
     temperature_scale = 1.0
+    local_path=os.getenv('TEMP') + "\\pretrained\\" + BERT_MODEL.replace('/', '-')
+    model_path=None
+    local_model=False
+    ouput_dir=os.getenv('TEMP') + "\\pretrained\\trainer_output"
+    
+    def __post_init__(self):
+        self.model_path = self.local_path if self.local_model else BERT_MODEL
 
 
-class BERTClassifier(Classifier):
-
-    model: BertForSequenceClassification
-    trainer: Optional[Trainer]
+class BERTClassifier(BERTWrapperMixin, ClassifierMixin):
+    _model: BertForSequenceClassification
+    __trainer: Optional[Trainer]
 
     def __init__(self, settings=BertClassifierSettings()):
-        self.tokenizer = BertTokenizer.from_pretrained(BERT_MODEL)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.settings = settings
+        super().__init__(model_path=settings.model_path, local_model=settings.local_model)
+        self.__settings = settings
+        self._tokenizer = AutoTokenizer.from_pretrained(self._model_path)
+        if self._local_model:
+            self._model = BertForSequenceClassification.from_pretrained(self._model_path)
+        else:
+            self.__model_init()
 
 
     def train(self, data: DatasetDict):
-        self.__model_init()
-        
+        if self.__settings.local_model:
+            raise ValueError("Model loaded from local path.")
+
         def tokenize_function(examples):
-            return self.tokenizer(examples["features"],
-                            padding="max_length",
+            return self._tokenizer(examples["features"],
+                            padding=True,
                             truncation=True,
-                            max_length=512)
+                            max_length=self._max_length)
 
         tokenized_datasets = data.map(tokenize_function, batched=True)
         tokenized_datasets.set_format("torch", columns=["input_ids", "attention_mask", "labels"])
@@ -73,47 +87,55 @@ class BERTClassifier(Classifier):
                 "ece": ece
             }
 
-        self.trainer = Trainer(
-            model=self.model,
+        self.__trainer = Trainer(
+            model=self._model,
             args=self.__build_training_args(),
             train_dataset=tokenized_datasets["train"],
             eval_dataset=tokenized_datasets["test"],
-            compute_metrics=compute_metrics
+            compute_metrics=compute_metrics,
+            data_collator=DataCollatorWithPadding(tokenizer=self._tokenizer)
         )
 
-        self.trainer.train()
+        self.__trainer.train()
 
-        # todo
-        # trainer.save_model("./imdb_sentiment_reduced")
-        # self.tokenizer.save_pretrained("./imdb_sentiment_reduced")
         return self
 
+    # todo
+    def save(self):
+        if not self._local_model:
+            self.__trainer.save_model(self.__settings.local_path)
+            self._tokenizer.save_pretrained(self.__settings.local_path)
+
     def predict_proba(self, X):
-        self.model.eval()
-        self.model.to(self.device)
-        if not isinstance(X, List):
+        self._model.eval()
+        self._model.to(self._device)
+        
+        if isinstance(X, pd.DataFrame):
             X = X.to_list()
+        elif isinstance(X, (np.ndarray, pd.Series)):
+            X = X.tolist()
+        
         result = []
         for i in range(0, len(X)):
             text = X[i]
 
-            inputs = self.tokenizer(
+            inputs = self._tokenizer(
                 text,
-                padding="max_length",
+                padding=True,
                 truncation=True,
-                max_length=BERT_MAX_TOKENS,
+                max_length=self._max_length,
                 return_tensors="pt"
             )
             
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            inputs = {k: v.to(self._device) for k, v in inputs.items()}
             
             with torch.no_grad():
-                outputs = self.model(**inputs)
+                outputs = self._model(**inputs)
                 logits = outputs.logits
-
+                
                 # Apply temperature scaling to the logits
-                logits = logits / self.settings.temperature_scale
-
+                logits = logits / self.__settings.temperature_scale
+                
                 probabilities = torch.softmax(logits, dim=-1).cpu().numpy()
                 result.append(probabilities)
             
@@ -133,15 +155,15 @@ class BERTClassifier(Classifier):
                 "weight_decay": trial.suggest_float("weight_decay", 0.01, 0.1),
             }
 
-        self.trainer = Trainer(
-            model=self.model,
+        self.__trainer = Trainer(
+            model=self._model,
             args=self.__build_training_args(),
             train_dataset=tokenized_datasets["train"],
             eval_dataset=tokenized_datasets["test"],
             compute_metrics=compute_metrics
         )
 
-        best_run = self.trainer.hyperparameter_search(
+        best_run = self.__trainer.hyperparameter_search(
             direction="minimize", # Minimize eval_loss
             hp_space=optuna_hp_space,
             n_trials=20
@@ -150,42 +172,41 @@ class BERTClassifier(Classifier):
 
     def __build_training_args(self):
         return TrainingArguments(
-            num_train_epochs=self.settings.num_train_epochs,
-            learning_rate=self.settings.learning_rate,
-            weight_decay=self.settings.weight_decay,
-            metric_for_best_model=self.settings.metric_for_best_model,
-            label_smoothing_factor=self.settings.label_smoothing_factor,
+            num_train_epochs=self.__settings.num_train_epochs,
+            learning_rate=self.__settings.learning_rate,
+            weight_decay=self.__settings.weight_decay,
+            metric_for_best_model=self.__settings.metric_for_best_model,
+            greater_is_better=self.__settings.greater_is_better,
+            label_smoothing_factor=self.__settings.label_smoothing_factor,
             per_device_train_batch_size=8,
             per_device_eval_batch_size=8,
             eval_strategy="epoch",
             save_strategy="epoch",
-            load_best_model_at_end=True
+            load_best_model_at_end=True,
+            output_dir=self.__settings.ouput_dir
         )
 
     def __model_init(self):
-        config = AutoConfig.from_pretrained(BERT_MODEL)
-        config.hidden_dropout_prob = self.settings.dropout_prob
-        config.attention_probs_dropout_prob = self.settings.dropout_prob
+        config = AutoConfig.from_pretrained(self._model_path)
+        config.hidden_dropout_prob = self.__settings.dropout_prob
+        config.attention_probs_dropout_prob = self.__settings.dropout_prob
 
-        self.model = BertForSequenceClassification.from_pretrained(
-            BERT_MODEL,
-            config=config
-        )
+        self._model = BertForSequenceClassification.from_pretrained(self._model_path, config=config)
 
         # Freeze all base BERT parameters
-        for param in self.model.bert.parameters():
+        for param in self._model.bert.parameters():
             param.requires_grad = False
 
         # Unfreeze the last n layers
-        for i in range(-self.settings.n_layer_unfreeze, 0):
-            for param in self.model.bert.encoder.layer[i].parameters():
+        for i in range(-self.__settings.n_layer_unfreeze, 0):
+            for param in self._model.bert.encoder.layer[i].parameters():
                 param.requires_grad = True
 
         # Unfreeze the classifier layer
-        for param in self.model.classifier.parameters():
+        for param in self._model.classifier.parameters():
             param.requires_grad = True
 
         print("Trainable parameters:")
-        for name, param in self.model.named_parameters():
+        for name, param in self._model.named_parameters():
             if param.requires_grad:
                 print(name)

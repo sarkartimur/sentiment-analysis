@@ -2,36 +2,39 @@ import torch
 import numpy as np
 from typing import List
 from transformers import AutoTokenizer, AutoModel
-from constants import BERT_MODEL, BERT_MAX_TOKENS
+from model.constants import BERT_MODEL
+from model.protocols import BERTWrapperMixin
 
 
-class BERTWrapper:
+class BERTContainer(BERTWrapperMixin):
     def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained(BERT_MODEL)
-        self.bert_model = AutoModel.from_pretrained(BERT_MODEL)
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.bert_model.to(self.device)
-        self.bert_model.eval()
+        super().__init__(model_path=BERT_MODEL, local_model=False)
+        self._tokenizer = AutoTokenizer.from_pretrained(BERT_MODEL)
+        self._model = AutoModel.from_pretrained(BERT_MODEL)
 
 
     def get_bert_embeddings(self, texts: List[str], pooling_strategy: str, batch_size=16) -> np.ndarray:
+        self._model.to(self._device)
+        self._model.eval()
+        
         print(f"Extracting embeddings using {pooling_strategy}")
         embeddings = []
         
         for i in range(0, len(texts), batch_size):
             batch_texts = texts[i:i+batch_size]
             
-            inputs = self.tokenizer(
+            inputs = self._tokenizer(
                 batch_texts,
-                # !IMPORTANT WHEN PROCESSING IN BATCHES DURING TRAIN/TEST AND PASSING SINGLE TEXTS DURING INFERENCE!
+                # !IMPORTANT WHEN FEEDING EMBEDDINGS TO ANOTHER MODEL
+                # WHILE PROCESSING IN BATCHES DURING TRAIN/TEST AND PASSING SINGLE TEXTS DURING INFERENCE!
                 padding='max_length',
                 truncation=True,
-                max_length=BERT_MAX_TOKENS,
+                max_length=self._max_length,
                 return_tensors='pt'
-            ).to(self.device)
+            )
             
             with torch.no_grad():
-                last_hidden = self.bert_model(**inputs).last_hidden_state
+                last_hidden = self._model(**inputs).last_hidden_state
                 if pooling_strategy == 'cls':
                     batch_embeddings = last_hidden[:, 0, :].cpu().numpy()  # [CLS] token
                 elif pooling_strategy == 'mean':

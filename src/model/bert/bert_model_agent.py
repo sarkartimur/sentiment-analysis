@@ -3,11 +3,12 @@ from sklearn.linear_model import LogisticRegression
 import numpy as np
 from typing import List, Literal, Optional
 from model.bert.bert_classifier import BERTClassifier
-from model.protocols import ModelContainer, ModelSettings, TrainTestSplit
-from data_loader import DataLoader
+from model.protocols import ModelAgent, ModelSettings, TrainTestSplit
+from model.data_loader import DataLoader
+from model.constants import DATASET_TEXT_COLUMN
 
 
-class BERTModelContainer(ModelContainer):
+class BERTModelContainer(ModelAgent):
     SUPPORTED_CALIBRATION_METHODS = ('sigmoid', 'isotonic', None)
     data: Optional[TrainTestSplit]
 
@@ -24,7 +25,7 @@ class BERTModelContainer(ModelContainer):
 
 
     def train(self) -> None:
-        self.data = self.loader.load_data(self.calibration_ratio)
+        self.data = self.loader.load_data()
         dict = self.loader.load_data_dict(self.data)
         self.model.train(dict)
         if self.calibration_method is not None:
@@ -32,15 +33,15 @@ class BERTModelContainer(ModelContainer):
 
     def test(self) -> None:
         if (self.data is None):
-            self.data = self.loader.load_data(self.calibration_ratio)
+            self.data = self.loader.load_data()
 
-        y_pred_proba = self.predict_list(self.data.X_test)[:, 1]
+        y_pred_proba = self.predict_multiple(self.data.X_test[DATASET_TEXT_COLUMN])[:, 1]
         y_pred = (y_pred_proba >= self.settings.threshold).astype(int)
 
         self._output_metrics(y_pred, y_pred_proba)
 
 
-    def predict_list(self, X: List[str]) -> np.ndarray:
+    def predict_multiple(self, X) -> np.ndarray:
         proba = self.model.predict_proba(X)
         if self.calibration_method is not None:
             proba = proba[:, 1]
@@ -54,7 +55,7 @@ class BERTModelContainer(ModelContainer):
 
 
     def __init_calibrator(self):
-        uncalibrated_probs = self.model.predict_proba(self.data.X_cal)[:, 1]
+        uncalibrated_probs = self.model.predict_proba(self.data.X_cal[DATASET_TEXT_COLUMN])[:, 1]
 
         if self.calibration_method == 'sigmoid':
             self.calibrator = LogisticRegression()

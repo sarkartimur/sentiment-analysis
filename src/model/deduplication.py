@@ -1,12 +1,9 @@
 import pandas as pd
 import numpy as np
 from typing import Tuple
-from constants import BERT_DEDUPLICATOR_MODEL, DATASET_SYNTHETIC_COLUMN, DATASET_TEXT_COLUMN, DATASET_CLASS_COLUMN, RANDOM_SEED
+from model.constants import BERT_DEDUPLICATOR_MODEL, CLUSTER1_PROPORTION_COL, CLUSTER_ID_COL, DATASET_SYNTHETIC_COLUMN, DATASET_TEXT_COLUMN, DATASET_CLASS_COLUMN, RANDOM_SEED
 from sentence_transformers import SentenceTransformer, util
 
-
-CLUSTER_ID_COL = 'cluster_id'
-CLUSTER1_PROPORTION_COL = 'cluster_class_1_proportion'
 
 
 class SemanticDeduplicator:

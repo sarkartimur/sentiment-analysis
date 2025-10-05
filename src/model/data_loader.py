@@ -1,10 +1,10 @@
 import pandas as pd
-from constants import DATASET_NAME, SAMPLE_SIZE, TEST_RATIO, IMBALANCE_RATIO
+from .constants import DATASET_CLASS_COLUMN, DATASET_NAME, DATASET_TEXT_COLUMN, SAMPLE_SIZE, TEST_RATIO, IMBALANCE_RATIO
 from datasets import load_dataset
 from datasets import DatasetDict, Dataset
 from model.protocols import TrainTestSplit
 from sklearn.model_selection import train_test_split
-from util import RANDOM_SEED
+from .util import RANDOM_SEED
 
 
 class DataLoader:
@@ -13,9 +13,13 @@ class DataLoader:
 
     def load_data_dict(self, data: TrainTestSplit) -> DatasetDict:
         X_train, y_train, X_test, y_test, *opt = data
+
+        def ds(X, y):
+            return Dataset.from_pandas(pd.concat([X.rename(columns={DATASET_TEXT_COLUMN: 'features'}), y.rename('labels')], axis=1))
+
         return DatasetDict({
-            'train': Dataset.from_dict({'features': X_train, 'labels': y_train}),
-            'test': Dataset.from_dict({'features': X_test, 'labels': y_test})
+            'train': ds(X_train, y_train),
+            'test': ds(X_test, y_test)
         })
 
     def load_data(self, calibration_ratio=None) -> TrainTestSplit:
@@ -25,8 +29,8 @@ class DataLoader:
 
         print(df.head())
 
-        X = df['text']
-        y = df['label']
+        X = df[[DATASET_TEXT_COLUMN]]
+        y = df[DATASET_CLASS_COLUMN]
         
         X_train, X_test, y_train, y_test = train_test_split(
             X, y,
@@ -56,10 +60,10 @@ class DataLoader:
         )
 
     def __add_imbalance(self, X_train, y_train, imbalance_ratio):
-        train_df = pd.DataFrame({'text': X_train, 'label': y_train})
+        train_df = pd.concat([X_train, y_train], axis=1)
 
-        majority_df = train_df[train_df['label'] != self.__MINORITY_CLASS]
-        minority_df = train_df[train_df['label'] == self.__MINORITY_CLASS]
+        majority_df = train_df[train_df[DATASET_CLASS_COLUMN] != self.__MINORITY_CLASS]
+        minority_df = train_df[train_df[DATASET_CLASS_COLUMN] == self.__MINORITY_CLASS]
 
         target_minority_count = int(len(majority_df) * imbalance_ratio)
         if len(minority_df) > target_minority_count:
@@ -71,8 +75,8 @@ class DataLoader:
         # Shuffle
         train_df = train_df.sample(frac=1, random_state=RANDOM_SEED).reset_index(drop=True)
 
-        X_train = train_df['text']
-        y_train = train_df['label']
+        X_train = train_df[[DATASET_TEXT_COLUMN]]
+        y_train = train_df[DATASET_CLASS_COLUMN]
 
         print(f"Imbalanced training set - Class {self.__MINORITY_CLASS} as minority")
         print(f"Positive: {sum(y_train)}, Negative: {len(y_train) - sum(y_train)}")

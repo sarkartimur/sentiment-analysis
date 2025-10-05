@@ -23,6 +23,8 @@ dependencies:
   - pylint
   - pytest
   - isort
+  - emoji
+  - openpyxl
   - pip
   - pip:
     - ucimlrepo
@@ -33,5 +35,6 @@ dependencies:
     - ipywidgets
     - bitsandbytes
     - uncertainty-calibration
+    - shap
     # pip install torch torchvision --index-url https://download.pytorch.org/whl/cu129
     # pip install vllm

@@ -1,5 +1,5 @@
 import numpy as np
-from constants import RANDOM_SEED
+from model.constants import RANDOM_SEED
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
@@ -23,21 +23,44 @@ def xgboost_cv():
         'reg_alpha': [0, 0.1, 0.5, 0.7],
         'reg_lambda': [1, 1.5, 2, 3, 5]
     }
-    
     xgb_model = xgb.XGBClassifier(
         objective='binary:logistic',
         eval_metric='aucpr',
-        # majority/minority
         scale_pos_weight=10,
+        subsample=0.3,
+        reg_lambda=1.5,
+        reg_alpha=0.5,
+        n_estimators=500,
+        max_depth=12,
+        learning_rate=0.05,
+        colsample_bytree=0.6,
         random_state=RANDOM_SEED
     )
-    
-    random_search = RandomizedSearchCV(
+    return RandomizedSearchCV(
         xgb_model, param_grid, n_iter=25, scoring='average_precision',
         cv=5, verbose=2, random_state=RANDOM_SEED, n_jobs=-1
     )
-    
-    return random_search
+
+def xgboost():
+    xgb_model = xgb.XGBClassifier(
+        objective='binary:logistic',
+        eval_metric='aucpr',
+        scale_pos_weight=10,
+        subsample=1,
+        reg_lambda=3,
+        reg_alpha=0.5,
+        n_estimators=500,
+        max_depth=9,
+        learning_rate=0.1,
+        colsample_bytree=0.8,
+        random_state=RANDOM_SEED
+    )
+    return CalibratedClassifierCV(
+        xgb_model,
+        method='isotonic', 
+        cv=5,
+        n_jobs=-1
+    )
 
 def svc_cv():
     # best params: C = 100, gamma = 0.01
@@ -102,7 +125,7 @@ def choose_model():
         estimator=pipeline,
         param_grid=param_grid,
         cv=5,
-        scoring='roc_auc',
+        scoring='pr_auc',
         verbose=3,
         n_jobs=-1,
         return_train_score=True

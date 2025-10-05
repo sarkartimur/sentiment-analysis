@@ -1,18 +1,19 @@
 import numpy as np
 from typing import Optional, Tuple, List
-from model.protocols import Classifier, ModelContainer, ModelSettings
-from data_loader import DataLoader
-from model.sklearn.bert_wrapper import BERTWrapper
+from model.constants import DATASET_TEXT_COLUMN
+from model.protocols import ClassifierMixin, ModelAgent, ModelSettings
+from model.data_loader import DataLoader
+from model.sklearn.bert_container import BERTContainer
 from sklearn.decomposition import PCA
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-import metrics
+import model.metrics as metrics
 import time
 
 
-class SklearnModelContainer(ModelContainer):
+class SklearnModelAgent(ModelAgent):
     reducer: Optional[PCA] = None
 
-    def __init__(self, loader: DataLoader, model: Classifier, bert: BERTWrapper, settings = ModelSettings()):
+    def __init__(self, loader: DataLoader, model: ClassifierMixin, bert: BERTContainer, settings = ModelSettings()):
         self.loader = loader
         self.model = model
         self.bert = bert
@@ -22,7 +23,7 @@ class SklearnModelContainer(ModelContainer):
     def train(self) -> None:
         self.data = self.loader.load_data()
         
-        train_embeddings = self.__extract_embeddings(self.data.X_train.to_list())
+        train_embeddings = self.__extract_embeddings(self.data.X_train[DATASET_TEXT_COLUMN].tolist())
         
         if self.settings.do_reduce:
             train_embeddings, reducer = self.__reduce_dimensions(train_embeddings)
@@ -40,7 +41,7 @@ class SklearnModelContainer(ModelContainer):
         if (self.data is None):
             self.data = self.loader.load_data()
         
-        test_embeddings = self.__extract_embeddings(self.data.X_test.to_list())
+        test_embeddings = self.__extract_embeddings(self.data.X_test[DATASET_TEXT_COLUMN].tolist())
         
         # todo consider case when model loaded from file (train not called before test)
         if self.settings.do_reduce:
@@ -54,7 +55,7 @@ class SklearnModelContainer(ModelContainer):
         self._output_metrics(y_pred, y_pred_proba)
 
 
-    def predict_list(self, X: List[str]) -> np.ndarray:
+    def predict_multiple(self, X: List[str]) -> np.ndarray:
         embeddings = self.__extract_embeddings(X)
         if self.settings.do_reduce:
             embeddings = self.reducer.transform(embeddings)
