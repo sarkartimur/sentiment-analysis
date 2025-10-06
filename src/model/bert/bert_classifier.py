@@ -14,20 +14,20 @@ from calibration import get_ece
 
 @dataclass
 class BertClassifierSettings:
-    num_train_epochs = 3
-    learning_rate = 2e-5
-    weight_decay = 0.05
+    num_train_epochs: int = 3
+    learning_rate: int = 2e-5
+    weight_decay: float = 0.05
     # Note: for balanced data use different metric
-    metric_for_best_model = "eval_class_1_f1"
-    greater_is_better = True
-    label_smoothing_factor = 0.1
-    n_layer_unfreeze = 3
-    dropout_prob = 0.25
-    temperature_scale = 1.0
-    local_path=os.getenv('TEMP') + "\\pretrained\\" + BERT_MODEL.replace('/', '-')
-    model_path=None
-    local_model=False
-    ouput_dir=os.getenv('TEMP') + "\\pretrained\\trainer_output"
+    metric_for_best_model: str = "eval_class_1_f1"
+    greater_is_better: bool = True
+    label_smoothing_factor: float = 0.1
+    n_layer_unfreeze: int = 3
+    dropout_prob: float = 0.25
+    temperature_scale: float = 1.0
+    local_model: bool = False
+    model_path: str = None
+    local_path: str = os.getenv('TEMP') + "\\pretrained\\" + BERT_MODEL.replace('/', '-')
+    ouput_dir: str = os.getenv('TEMP') + "\\pretrained\\trainer_output"
     
     def __post_init__(self):
         self.model_path = self.local_path if self.local_model else BERT_MODEL

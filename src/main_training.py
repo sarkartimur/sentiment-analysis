@@ -23,14 +23,12 @@ np.random.seed(RANDOM_SEED)
 # model.train()
 # model.test()
 
-bert_settings = BertClassifierSettings()
-# bert_settings.local_model = True
-bert_settings.temperature_scale = 1.5
+bert_settings = BertClassifierSettings(local_model=True, temperature_scale = 1.5)
 cls = BERTClassifier(settings=bert_settings)
 
 model = BERTModelContainer(loader=DataLoader(), model=cls, calibration_method=None)
-model.train()
-cls.save()
+# model.train()
+# cls.save()
 model.test()
 
 exp = BERTExplainer(bert_wrapper=cls, predict_method=model.predict_multiple)

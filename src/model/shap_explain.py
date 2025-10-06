@@ -9,7 +9,7 @@ class BERTExplainer:
         self.__predict_method = predict_method
         self.__bert_wrapper = bert_wrapper
 
-    def explain_prediction(self, text: str, max_evals = 10000):
+    def explain_prediction(self, text: str, max_evals = 1000):
         masker = shap.maskers.Text(
             tokenizer=self._semantic_tokenizer,
             mask_token='[MASK]',
@@ -45,7 +45,7 @@ class BERTExplainer:
             "offset_mapping": offset_mapping
         }
 
-    def _create_attention_clustering(self, inputs, tokens, cluster_size=10):
+    def _create_attention_clustering(self, inputs, tokens, cluster_size=20):
         attention_matrix = self.__bert_wrapper.get_attention_matrix(inputs)
             
         # Filter out special tokens

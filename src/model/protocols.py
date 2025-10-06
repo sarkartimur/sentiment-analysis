@@ -145,6 +145,7 @@ class BERTWrapperMixin(ABC):
     
     def get_attention_matrix(self, inputs):
         self._model.eval()
+        self._model.to(self._device)
         with torch.no_grad():
             inputs = {k: v.to(self._device) for k, v in inputs.items() if k != 'offset_mapping'}
             outputs = self._model.bert(**inputs, output_attentions=True)
