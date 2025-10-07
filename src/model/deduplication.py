@@ -44,7 +44,7 @@ class SemanticDeduplicator:
 
         def add_unique_record(class_indices, class_1_proportion, cluster_id):
             if DATASET_SYNTHETIC_COLUMN in df.columns:
-                non_synthetic_indices = [idx for idx in class_indices if df.loc[idx, DATASET_SYNTHETIC_COLUMN] == 0]
+                non_synthetic_indices = [idx for idx in class_indices if df.iloc[idx, DATASET_SYNTHETIC_COLUMN] == 0]
                 indices_to_consider = non_synthetic_indices if non_synthetic_indices else class_indices
             else:
                 indices_to_consider = class_indices

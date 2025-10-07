@@ -100,8 +100,8 @@ class ModelAgent(ABC):
     
     def _analyze_errors(self, y_pred: np.ndarray, y_pred_proba: np.ndarray) -> None:
         if self.data is not None:
-            self.cfp = self.data.X_test[(self.data.y_test == 0) & (y_pred == 1) & (y_pred_proba > 0.9)][DATASET_TEXT_COLUMN]
-            self.cfn = self.data.X_test[(self.data.y_test == 1) & (y_pred == 0) & (y_pred_proba < 0.1)][DATASET_TEXT_COLUMN]
+            self.cfp = self.data.X_test[(self.data.y_test == 0) & (y_pred == 1) & (y_pred_proba > 0.8)][DATASET_TEXT_COLUMN]
+            self.cfn = self.data.X_test[(self.data.y_test == 1) & (y_pred == 0) & (y_pred_proba < 0.2)][DATASET_TEXT_COLUMN]
             
             print("\n")
             for i, fn in self.cfp[:10].items():
@@ -121,15 +121,20 @@ class ModelAgent(ABC):
 
 
 class BERTWrapperMixin(ABC):
+    __BERT_LAYER_NUM = 12
+    __BERT_HEAD_NUM = 12
+
     _model: AutoModel
     _tokenizer: AutoTokenizer
     _max_length = BERT_MAX_TOKENS
 
-    def __init__(self, model_path: str, local_model: bool, **kwargs):
+    def __init__(self, model_path: str, local_model: bool, n_layer_unfreeze: int, **kwargs):
         super().__init__(**kwargs)
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._model_path = model_path
         self._local_model = local_model
+        self._n_layer_unfreeze = n_layer_unfreeze
+
 
     def get_tokens_with_offsets(self, text, return_offsets_mapping):
         inputs = self._tokenizer(
@@ -149,7 +154,10 @@ class BERTWrapperMixin(ABC):
         with torch.no_grad():
             inputs = {k: v.to(self._device) for k, v in inputs.items() if k != 'offset_mapping'}
             outputs = self._model.bert(**inputs, output_attentions=True)
-            
             attentions = torch.stack([att.squeeze(0) for att in outputs.attentions])
-            # Average attentions across layers then over heads
-            return attentions.mean(dim=0).mean(dim=0).cpu().numpy()
+            attention_matrix = attentions.cpu().numpy()
+            
+        layer_range_start = self.__BERT_LAYER_NUM - self._n_layer_unfreeze if self._n_layer_unfreeze is not None else 0
+        layer_range = range(layer_range_start, self.__BERT_LAYER_NUM)
+        selected_attentions = [attention_matrix[layer, head, :, :] for layer in layer_range for head in range(self.__BERT_HEAD_NUM)]
+        return np.mean(np.array(selected_attentions), axis=0)

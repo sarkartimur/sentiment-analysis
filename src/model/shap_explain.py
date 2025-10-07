@@ -5,9 +5,11 @@ from model.protocols import BERTWrapperMixin
 
 
 class BERTExplainer:
-    def __init__(self, bert_wrapper: BERTWrapperMixin, predict_method):
+    def __init__(self, bert_wrapper: BERTWrapperMixin, predict_method, cluster_size=10):
         self.__predict_method = predict_method
         self.__bert_wrapper = bert_wrapper
+        self.__cluster_size = cluster_size
+
 
     def explain_prediction(self, text: str, max_evals = 1000):
         masker = shap.maskers.Text(
@@ -45,9 +47,7 @@ class BERTExplainer:
             "offset_mapping": offset_mapping
         }
 
-    def _create_attention_clustering(self, inputs, tokens, cluster_size=20):
-        attention_matrix = self.__bert_wrapper.get_attention_matrix(inputs)
-            
+    def _create_attention_clustering(self, inputs, tokens):
         # Filter out special tokens
         valid_indices = []
         for i, token in enumerate(tokens):
@@ -58,6 +58,7 @@ class BERTExplainer:
             return [[i] for i in range(len(tokens))]
         
         # Build similarity matrix
+        attention_matrix = self.__bert_wrapper.get_attention_matrix(inputs)
         n_valid = len(valid_indices)
         similarity_matrix = np.zeros((n_valid, n_valid))
         for i, idx_i in enumerate(valid_indices):
@@ -70,7 +71,7 @@ class BERTExplainer:
         
         # Semantic clustering by distance
         clustering = AgglomerativeClustering(
-            n_clusters=int(len(valid_indices)/cluster_size),
+            n_clusters=int(len(valid_indices)/self.__cluster_size),
             metric='precomputed',
             linkage='average'
         )
