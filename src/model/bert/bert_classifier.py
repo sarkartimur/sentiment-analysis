@@ -45,6 +45,7 @@ class BERTClassifier(BERTWrapperMixin, ClassifierMixin):
             self._model = BertForSequenceClassification.from_pretrained(self._model_path)
         else:
             self.__model_init()
+        print(f"Initialized BERTClassifier with settings: {settings}")
 
 
     def train(self, data: DatasetDict):
@@ -60,40 +61,15 @@ class BERTClassifier(BERTWrapperMixin, ClassifierMixin):
         tokenized_datasets = data.map(tokenize_function, batched=True)
         tokenized_datasets.set_format("torch", columns=["input_ids", "attention_mask", "labels"])
 
-        def compute_metrics(p):
-            logits, labels = p
-            pred = np.argmax(logits, axis=1)
-            
-            accuracy = accuracy_score(labels, pred)
-            precision, recall, f1, _ = precision_recall_fscore_support(labels, pred, average='weighted')
-            
-            precision_class, recall_class, f1_class, _ = precision_recall_fscore_support(labels, pred, average=None)
-
-            # Convert logits to probabilities using softmax
-            y_pred_proba = (np.exp(logits) / np.exp(logits).sum(axis=1, keepdims=True))[:, 1]
-            ece = get_ece(y_pred_proba, labels)
-
-            return {
-                "accuracy": accuracy,
-                "weighted_precision": precision,
-                "weighted_recall": recall,
-                "weighted_f1": f1,
-                "class_0_precision": precision_class[0],
-                "class_0_recall": recall_class[0],
-                "class_0_f1": f1_class[0],
-                "class_1_precision": precision_class[1],
-                "class_1_recall": recall_class[1],
-                "class_1_f1": f1_class[1],
-                "ece": ece
-            }
-
-        self.__trainer = Trainer(
+        self.__trainer = self.WeightedTrainer(
             model=self._model,
             args=self.__build_training_args(),
             train_dataset=tokenized_datasets["train"],
             eval_dataset=tokenized_datasets["test"],
-            compute_metrics=compute_metrics,
-            data_collator=DataCollatorWithPadding(tokenizer=self._tokenizer)
+            data_collator=DataCollatorWithPadding(tokenizer=self._tokenizer),
+            class_weights=(torch.tensor(self.__settings.class_weights, dtype=torch.float32)
+                        if self.__settings.class_weights is not None
+                        else None)
         )
 
         self.__trainer.train()
@@ -174,9 +150,11 @@ class BERTClassifier(BERTWrapperMixin, ClassifierMixin):
         return TrainingArguments(
             num_train_epochs=self.__settings.num_train_epochs,
             learning_rate=self.__settings.learning_rate,
-            weight_decay=self.__settings.weight_decay,
+            lr_scheduler_type=self.__settings.lr_scheduler_type,
+            warmup_ratio=self.__settings.warmup_ratio,
             metric_for_best_model=self.__settings.metric_for_best_model,
             greater_is_better=self.__settings.greater_is_better,
+            weight_decay=self.__settings.weight_decay,
             label_smoothing_factor=self.__settings.label_smoothing_factor,
             per_device_train_batch_size=8,
             per_device_eval_batch_size=8,
@@ -210,3 +188,52 @@ class BERTClassifier(BERTWrapperMixin, ClassifierMixin):
         for name, param in self._model.named_parameters():
             if param.requires_grad:
                 print(name)
+
+    """Handles class imbalance"""
+    class WeightedTrainer(Trainer):
+        def __init__(self, class_weights=None, **kwargs):
+            kwargs['compute_metrics'] = self.__compute_metrics
+            super().__init__(**kwargs)
+            self.class_weights = class_weights
+        
+        def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
+            labels = inputs.get("labels")
+            outputs = model(**inputs)
+            logits = outputs.get("logits")
+            
+            if self.class_weights is not None:
+                loss_fct = torch.nn.CrossEntropyLoss(
+                    weight=self.class_weights.to(logits.device)
+                )
+            else:
+                loss_fct = torch.nn.CrossEntropyLoss()
+                
+            loss = loss_fct(logits, labels)
+            return (loss, outputs) if return_outputs else loss
+        
+        def __compute_metrics(self, p):
+            logits, labels = p
+            pred = np.argmax(logits, axis=1)
+            
+            accuracy = accuracy_score(labels, pred)
+            precision, recall, f1, _ = precision_recall_fscore_support(labels, pred, average='weighted')
+            
+            precision_class, recall_class, f1_class, _ = precision_recall_fscore_support(labels, pred, average=None)
+
+            # Convert logits to probabilities using softmax
+            y_pred_proba = (np.exp(logits) / np.exp(logits).sum(axis=1, keepdims=True))[:, 1]
+            ece = get_ece(y_pred_proba, labels)
+
+            return {
+                "accuracy": accuracy,
+                "weighted_precision": precision,
+                "weighted_recall": recall,
+                "weighted_f1": f1,
+                "class_0_precision": precision_class[0],
+                "class_0_recall": recall_class[0],
+                "class_0_f1": f1_class[0],
+                "class_1_precision": precision_class[1],
+                "class_1_recall": recall_class[1],
+                "class_1_f1": f1_class[1],
+                "ece": ece
+            }
