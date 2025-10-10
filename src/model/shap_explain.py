@@ -1,3 +1,4 @@
+import math
 from sklearn.cluster import AgglomerativeClustering
 import numpy as np
 import shap
@@ -5,13 +6,13 @@ from model.protocols import BERTWrapperMixin
 
 
 class BERTExplainer:
-    def __init__(self, bert_wrapper: BERTWrapperMixin, predict_method, cluster_size=10):
+    def __init__(self, bert_wrapper: BERTWrapperMixin, predict_method, cluster_size=None):
         self.__predict_method = predict_method
         self.__bert_wrapper = bert_wrapper
         self.__cluster_size = cluster_size
 
 
-    def explain_prediction(self, text: str, max_evals = 1000):
+    def explain_prediction(self, text: str, max_evals = 100):
         masker = shap.maskers.Text(
             tokenizer=self._semantic_tokenizer,
             mask_token='[MASK]',
@@ -31,9 +32,11 @@ class BERTExplainer:
         
         offsets_mapping = inputs['offset_mapping'][0].tolist()
         clusters = self._create_attention_clustering(inputs, tokens)
+        
         input_ids = []
         offset_mapping = []
         for cluster in clusters:
+            cluster = self.__longest_consecutive_sequence(cluster)
             cluster_offsets = [offsets_mapping[idx] for idx in cluster]
             start_char = cluster_offsets[0][0]
             end_char = cluster_offsets[-1][1]
@@ -41,11 +44,26 @@ class BERTExplainer:
             if text_chunk:
                 input_ids.append(text_chunk)
                 offset_mapping.append((start_char, end_char))
-        
         return {
             "input_ids": input_ids,
             "offset_mapping": offset_mapping
         }
+    
+    def __longest_consecutive_sequence(self, cluster):
+        unique = set(cluster)
+        longest_sequence = []
+        for num in cluster:
+            if num - 1 not in unique:
+                current_num = num
+                current_sequence = [current_num]
+                
+                while current_num + 1 in unique:
+                    current_num += 1
+                    current_sequence.append(current_num)
+                
+                if len(current_sequence) > len(longest_sequence):
+                    longest_sequence = current_sequence
+        return longest_sequence
 
     def _create_attention_clustering(self, inputs, tokens):
         # Filter out special tokens
@@ -70,8 +88,13 @@ class BERTExplainer:
                     similarity_matrix[i, j] = sim
         
         # Semantic clustering by distance
+        n_clusters = (
+            int(len(valid_indices)/self.__cluster_size)
+            if self.__cluster_size is not None 
+            else int(math.sqrt(len(valid_indices)))
+        )
         clustering = AgglomerativeClustering(
-            n_clusters=int(len(valid_indices)/self.__cluster_size),
+            n_clusters=n_clusters,
             metric='precomputed',
             linkage='average'
         )
