@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import os
 import pandas as pd
 import torch
+import torch.nn.functional as F
 import numpy as np
 from typing import Optional
 from model.constants import BERT_MODEL
@@ -16,14 +17,18 @@ from calibration import get_ece
 class BertClassifierSettings:
     num_train_epochs: int = 3
     learning_rate: int = 2e-5
+    lr_scheduler_type: str = "cosine"
+    warmup_ratio: float = 0.1
     weight_decay: float = 0.05
+    dropout_prob: float = 0.25
     # Note: for balanced data use different metric
     metric_for_best_model: str = "eval_class_1_f1"
     greater_is_better: bool = True
     label_smoothing_factor: float = 0.1
     n_layer_unfreeze: int = 3
-    dropout_prob: float = 0.25
     temperature_scale: float = 1.0
+    focal_loss_gamma: float = 2.0
+    focal_loss_alpha: np.ndarray = None
     local_model: bool = False
     model_path: str = None
     local_path: str = os.getenv('TEMP') + "\\pretrained\\" + BERT_MODEL.replace('/', '-')
@@ -61,15 +66,16 @@ class BERTClassifier(BERTWrapperMixin, ClassifierMixin):
         tokenized_datasets = data.map(tokenize_function, batched=True)
         tokenized_datasets.set_format("torch", columns=["input_ids", "attention_mask", "labels"])
 
-        self.__trainer = self.WeightedTrainer(
+        self.__trainer = self.FocalLossTrainer(
             model=self._model,
             args=self.__build_training_args(),
             train_dataset=tokenized_datasets["train"],
             eval_dataset=tokenized_datasets["test"],
             data_collator=DataCollatorWithPadding(tokenizer=self._tokenizer),
-            class_weights=(torch.tensor(self.__settings.class_weights, dtype=torch.float32)
-                        if self.__settings.class_weights is not None
-                        else None)
+            alpha=(torch.tensor(self.__settings.focal_loss_alpha, dtype=torch.float32)
+                        if self.__settings.focal_loss_alpha is not None
+                        else None),
+            gamma=self.__settings.focal_loss_gamma
         )
 
         self.__trainer.train()
@@ -189,27 +195,54 @@ class BERTClassifier(BERTWrapperMixin, ClassifierMixin):
             if param.requires_grad:
                 print(name)
 
-    """Handles class imbalance"""
-    class WeightedTrainer(Trainer):
-        def __init__(self, class_weights=None, **kwargs):
+    class FocalLossTrainer(Trainer):
+        def __init__(self, alpha=None, gamma=2.0, **kwargs):
             kwargs['compute_metrics'] = self.__compute_metrics
             super().__init__(**kwargs)
-            self.class_weights = class_weights
+            self.alpha = alpha
+            self.gamma = gamma
         
         def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
-            labels = inputs.get("labels")
-            outputs = model(**inputs)
-            logits = outputs.get("logits")
-            
-            if self.class_weights is not None:
-                loss_fct = torch.nn.CrossEntropyLoss(
-                    weight=self.class_weights.to(logits.device)
+                labels = inputs.get("labels")
+                outputs = model(**inputs)
+                logits = outputs.get("logits")
+
+                if self.alpha is not None:
+                    alpha_tensor = self.alpha.to(logits.device)
+                else:
+                    alpha_tensor = None
+                    
+                loss = self.__focal_loss(
+                    logits=logits, 
+                    targets=labels, 
+                    alpha=alpha_tensor, 
+                    gamma=self.gamma
                 )
-            else:
-                loss_fct = torch.nn.CrossEntropyLoss()
+
+                return (loss, outputs) if return_outputs else loss
+        
+        """
+        FL = -alpha_t * (1 - pt)**gamma * log(pt)
+    
+        pt: The predicted probability for the true class.
+        log(pt): Standard Cross-Entropy loss (CE).
+        (1 - pt)**gamma: The modulating factor. gamma controls the strength of down-weighting for easy instances.
+        alpha_t: A class-specific weighting factor (alpha) to balance loss across positive/negative classes (handles data imbalance).
+    
+        Since CE = -log(pt), the formula is often written as:
+        FL = alpha_t * (1 - pt)**gamma * CE
+        """
+        def __focal_loss(self, logits, targets, alpha=None, gamma=2.0):
+            ce_loss = F.cross_entropy(logits, targets, reduction='none')
+            pt = torch.exp(-ce_loss)
+            modulating_factor = (1 - pt)**gamma
+            loss = modulating_factor * ce_loss
+            
+            if alpha is not None:
+                alpha_t = alpha[targets]
+                loss = alpha_t * loss
                 
-            loss = loss_fct(logits, labels)
-            return (loss, outputs) if return_outputs else loss
+            return loss.mean()
         
         def __compute_metrics(self, p):
             logits, labels = p
