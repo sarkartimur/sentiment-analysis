@@ -1,7 +1,9 @@
 from dataclasses import replace
+import random
 import pandas as pd
 import numpy as np
 import shap
+import torch
 from model.data_loader import DataLoader
 from model.bert.bert_classifier import BertClassifierSettings
 from model.protocols import ModelSettings
@@ -14,7 +16,14 @@ import model.util as util
 
 
 # Fix for non-deterministic cv/test accuracy
-np.random.seed(RANDOM_SEED)
+def set_seeds(random_seed=RANDOM_SEED):
+    np.random.seed(random_seed)
+    random.seed(random_seed)
+
+    torch.manual_seed(random_seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(random_seed)
+set_seeds()
 
 # pd.set_option('display.max_colwidth', None)
 # pd.set_option('display.max_rows', None)
@@ -25,7 +34,6 @@ np.random.seed(RANDOM_SEED)
 
 bert_settings = BertClassifierSettings(
     temperature_scale=1.5,
-    class_weights=np.array((1, 2)),
     local_model = False
 )
 cls = BERTClassifier(settings=bert_settings)

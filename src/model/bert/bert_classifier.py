@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from typing import Optional
-from model.constants import BERT_MODEL
+from model.constants import BERT_MODEL, RANDOM_SEED
 from model.protocols import BERTWrapperMixin, ClassifierMixin
 from transformers import AutoConfig, AutoTokenizer, BertForSequenceClassification, DataCollatorWithPadding, TrainingArguments, Trainer
 from datasets import DatasetDict
@@ -29,6 +29,7 @@ class BertClassifierSettings:
     temperature_scale: float = 1.0
     focal_loss_gamma: float = 2.0
     focal_loss_alpha: np.ndarray = None
+    random_seed: int = RANDOM_SEED
     local_model: bool = False
     model_path: str = None
     local_path: str = os.getenv('TEMP') + "\\pretrained\\" + BERT_MODEL.replace('/', '-')
@@ -162,6 +163,7 @@ class BERTClassifier(BERTWrapperMixin, ClassifierMixin):
             greater_is_better=self.__settings.greater_is_better,
             weight_decay=self.__settings.weight_decay,
             label_smoothing_factor=self.__settings.label_smoothing_factor,
+            seed=self.__settings.random_seed,
             per_device_train_batch_size=8,
             per_device_eval_batch_size=8,
             eval_strategy="epoch",
