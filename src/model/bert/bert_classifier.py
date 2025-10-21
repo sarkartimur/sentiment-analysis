@@ -29,6 +29,8 @@ class BertClassifierSettings:
     temperature_scale: float = 1.0
     focal_loss_gamma: float = 2.0
     focal_loss_alpha: np.ndarray = None
+    gradient_accumulation_steps: int = 1
+    batch_size: int = 8
     random_seed: int = RANDOM_SEED
     local_model: bool = False
     model_path: str = None
@@ -163,9 +165,10 @@ class BERTClassifier(BERTWrapperMixin, ClassifierMixin):
             greater_is_better=self.__settings.greater_is_better,
             weight_decay=self.__settings.weight_decay,
             label_smoothing_factor=self.__settings.label_smoothing_factor,
+            gradient_accumulation_steps=self.__settings.gradient_accumulation_steps,
+            per_device_train_batch_size=self.__settings.batch_size,
+            per_device_eval_batch_size=self.__settings.batch_size,
             seed=self.__settings.random_seed,
-            per_device_train_batch_size=8,
-            per_device_eval_batch_size=8,
             eval_strategy="epoch",
             save_strategy="epoch",
             load_best_model_at_end=True,
