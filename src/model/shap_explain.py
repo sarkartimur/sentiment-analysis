@@ -12,7 +12,7 @@ class BERTExplainer:
         self.__cluster_size = cluster_size
 
 
-    def explain_prediction(self, text: str, max_evals = 100):
+    def explain_prediction(self, text: str, max_evals = 10):
         masker = shap.maskers.Text(
             tokenizer=self._semantic_tokenizer,
             mask_token='[MASK]',
@@ -44,6 +44,11 @@ class BERTExplainer:
             if text_chunk:
                 input_ids.append(text_chunk)
                 offset_mapping.append((start_char, end_char))
+
+        if offset_mapping:
+            s = sorted(list(zip(input_ids, offset_mapping)), key=lambda item: item[1])
+            input_ids, offset_mapping = zip(*s)
+        
         return {
             "input_ids": input_ids,
             "offset_mapping": offset_mapping
@@ -91,7 +96,7 @@ class BERTExplainer:
         n_clusters = (
             int(len(valid_indices)/self.__cluster_size)
             if self.__cluster_size is not None 
-            else int(math.sqrt(len(valid_indices)))
+            else max(1, int(math.sqrt(len(valid_indices))))
         )
         clustering = AgglomerativeClustering(
             n_clusters=n_clusters,

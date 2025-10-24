@@ -8,7 +8,7 @@ from model.protocols import BERTWrapperMixin
 
 class BERTContainer(BERTWrapperMixin):
     def __init__(self):
-        super().__init__(model_path=BERT_MODEL, local_model=False, n_layer_unfreeze=None)
+        super().__init__(model_path=BERT_MODEL, local_model=False)
         self._tokenizer = AutoTokenizer.from_pretrained(BERT_MODEL)
         self._model = AutoModel.from_pretrained(BERT_MODEL)
 

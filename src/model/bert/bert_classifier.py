@@ -46,7 +46,7 @@ class BERTClassifier(BERTWrapperMixin, ClassifierMixin):
     __trainer: Optional[Trainer]
 
     def __init__(self, settings=BertClassifierSettings()):
-        super().__init__(model_path=settings.model_path, local_model=settings.local_model, n_layer_unfreeze=settings.n_layer_unfreeze)
+        super().__init__(model_path=settings.model_path, local_model=settings.local_model)
         self.__settings = settings
         self._tokenizer = AutoTokenizer.from_pretrained(self._model_path)
         if self._local_model:

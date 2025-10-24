@@ -128,12 +128,11 @@ class BERTWrapperMixin(ABC):
     _tokenizer: AutoTokenizer
     _max_length = BERT_MAX_TOKENS
 
-    def __init__(self, model_path: str, local_model: bool, n_layer_unfreeze: int, **kwargs):
+    def __init__(self, model_path: str, local_model: bool, **kwargs):
         super().__init__(**kwargs)
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._model_path = model_path
         self._local_model = local_model
-        self._n_layer_unfreeze = n_layer_unfreeze
 
 
     def get_tokens_with_offsets(self, text, return_offsets_mapping):
@@ -157,7 +156,6 @@ class BERTWrapperMixin(ABC):
             attentions = torch.stack([att.squeeze(0) for att in outputs.attentions])
             attention_matrix = attentions.cpu().numpy()
             
-        layer_range_start = self.__BERT_LAYER_NUM - self._n_layer_unfreeze if self._n_layer_unfreeze is not None else 0
-        layer_range = range(layer_range_start, self.__BERT_LAYER_NUM)
+        layer_range = range(0, self.__BERT_LAYER_NUM)
         selected_attentions = [attention_matrix[layer, head, :, :] for layer in layer_range for head in range(self.__BERT_HEAD_NUM)]
         return np.mean(np.array(selected_attentions), axis=0)
